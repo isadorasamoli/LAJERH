@@ -20,7 +20,17 @@ npm run dev
 
 O build de produção pode ser conferido com `npm run build`. As configurações do Firebase ficam nas variáveis usadas por `src/lib/firebase.ts`.
 
+## Deploy no Render
+
+Este projeto está configurado como um **Static Site** no Render:
+
+- **Build command:** `npm ci && npm run build`
+- **Publish directory:** `dist`
+
+Se você preferir criar o serviço manualmente no painel do Render, use as mesmas opções acima. O arquivo [`render.yaml`](./render.yaml) já deixa essa configuração pronta para importação automática.
+
+Para navegação do lado do cliente funcionar corretamente em rotas internas, o projeto também inclui [`public/_redirects`](./public/_redirects) com fallback para `index.html`.
+
 ## Autoria
 
 Isadora Lima
-

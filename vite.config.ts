@@ -5,8 +5,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
-    // GitHub Pages serves this project below /LAJE-siterh/.
-    base: './',
+    // Render serves this project at the site root.
+    base: '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

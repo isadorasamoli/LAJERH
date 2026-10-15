@@ -177,7 +177,6 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Monitoramento estrito de rotas e proteção de URL contra acessos não autorizados
   useEffect(() => {
     const syncRouteWithPermissions = () => {
       const urlTab = getTabFromUrl();

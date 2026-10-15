@@ -15,7 +15,6 @@ export default function AdminAccessBlocked({
 
   return (
     <div className="w-full max-w-2xl mx-auto my-12 p-8 border border-red-500/30 bg-gradient-to-b from-red-950/20 via-[#121216] to-[#0c0c0e] shadow-2xl relative overflow-hidden">
-      {/* Decorative warning accent */}
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-amber-500 to-red-600 animate-pulse" />
 
       <div className="flex flex-col items-center text-center space-y-6">

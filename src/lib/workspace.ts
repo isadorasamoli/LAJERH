@@ -56,14 +56,12 @@ const sendGmailMessage = async (accessToken: string, headers: string[], html: st
     throw new Error('Access token não fornecido. Autorize a conta Google para envio via Gmail.');
   }
 
-  // Ensure From and MIME headers are always present
   const baseHeaders = [
     'From: me',
     'MIME-Version: 1.0',
     'Content-Type: text/html; charset="UTF-8"'
   ];
 
-  // Merge headers, avoiding duplicates
   const finalHeaders = [...baseHeaders];
   for (const h of headers) {
     const key = h.split(':')[0].trim().toLowerCase();
@@ -352,4 +350,3 @@ export const sendNewProjectNotification = async (
   }
   return { success: sent > 0, sentCount: sent };
 };
-

@@ -8,8 +8,6 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
 export const auth = getAuth(app);
 
 export const provider = new GoogleAuthProvider();
-// Note: Sensitive scopes (gmail.send, calendar.events) are excluded from the main login
-// provider to prevent Google OAuth 403: access_denied / unverified app errors for members.
 
 export enum OperationType {
   CREATE = 'create',

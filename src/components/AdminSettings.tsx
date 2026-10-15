@@ -152,7 +152,7 @@ export default function AdminSettings({ isAdmin = false, onNavigateHome }: Admin
                 </td>
                 <td className="p-4">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(16,185,129,0.1)] text-[#10b981] text-[0.7rem] font-bold uppercase tracking-wider border border-[rgba(16,185,129,0.2)]">
-                    <Shield size={12} /> Super Admin
+                    <Shield size={12} /> Criadora do site
                   </span>
                 </td>
                 <td className="p-4 text-right text-[var(--color-ink-muted)] text-sm">

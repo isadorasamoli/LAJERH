@@ -1381,7 +1381,7 @@ export default function Dashboard({
   const handleSaveNewMember = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthorizedToAddMember) {
-      toast.error('Apenas Super Admin e Membros do Diretório podem adicionar novos membros à equipe.');
+      toast.error('Apenas a criadora do site e membros do Diretório podem adicionar novos membros à equipe.');
       return;
     }
 
@@ -1452,7 +1452,7 @@ export default function Dashboard({
         targetMemberName: payload.name,
         targetMemberEmail: payload.email,
         performedByEmail: currentUserEmail || (isSuperAdmin ? 'isadora.mlima@ufpe.br' : 'Membro do Diretório'),
-        performedByName: currentUserName || (isSuperAdmin ? 'Super Admin' : 'Membro do Diretório'),
+        performedByName: currentUserName || (isSuperAdmin ? 'Criadora do site' : 'Membro do Diretório'),
         performedByUid: currentUserUid || '',
         details: `Novo membro "${payload.name}" (${payload.email}) cadastrado na equipe via filtro do Dashboard por ${currentUserName || currentUserEmail || 'Diretório'}`,
         newValue: JSON.stringify({
@@ -1531,7 +1531,7 @@ export default function Dashboard({
                 type="button"
                 onClick={() => handleOpenAddMember()}
                 className="flex items-center gap-2 px-3.5 py-2 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold text-xs font-['Space_Mono'] uppercase tracking-wider transition-all duration-200 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer shrink-0"
-                title="Cadastrar novo membro na equipe (Super Admin / Membro do Diretório)"
+                title="Cadastrar novo membro na equipe (Criadora do site / Membro do Diretório)"
               >
                 <UserPlus size={15} />
                 <span>+ Adicionar Membro</span>
@@ -3553,7 +3553,7 @@ export default function Dashboard({
         </div>
       )}
 
-      {/* Add New Member Modal (Accessible to Super Admin and Membro do Diretório via Filter) */}
+      {/* Modal de novo membro, acessível à criadora do site e ao Membro do Diretório pelo filtro */}
       {isAddMemberOpen && (
         <div 
           className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto"
@@ -3575,7 +3575,7 @@ export default function Dashboard({
                       Cadastrar Novo Membro da Equipe
                     </h2>
                     <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-['Space_Mono'] uppercase tracking-wider font-bold">
-                      {isSuperAdmin ? 'Super Admin' : 'Membro do Diretório'}
+                      {isSuperAdmin ? 'Criadora do site' : 'Membro do Diretório'}
                     </span>
                   </div>
                   <p className="text-xs text-gray-400 font-['Space_Mono']">

@@ -75,7 +75,7 @@ export default function DirectorioDoubts({
   currentUserUid = '',
   currentUserRole = ''
 }: DirectorioDoubtsProps) {
-  // O Diretório ou Super Admin gerenciam e respondem a todas as dúvidas
+  // O Diretório ou a criadora do site gerenciam e respondem a todas as dúvidas
   const canManageDoubts = isSuperAdmin || isRH || isAdmin;
 
   const [doubts, setDoubts] = useState<Doubt[]>([]);
@@ -126,7 +126,7 @@ export default function DirectorioDoubts({
   }, [currentUserUid, currentUserEmail]);
 
   // Carregar dúvidas em tempo real respeitando a privacidade:
-  // Se for Diretório / Super Admin: busca todas as dúvidas
+  // Se for Diretório ou criadora do site: busca todas as dúvidas
   // Se for membro normal: busca APENAS as dúvidas onde userId == currentUserUid
   useEffect(() => {
     setLoading(true);
@@ -233,12 +233,12 @@ export default function DirectorioDoubts({
     }
   };
 
-  // Responder Dúvida (Exclusivo para Diretório / Super Admin)
+  // Responder Dúvida (Exclusivo para Diretório / criadora do site)
   const handleSendResponse = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedDoubtForAnswer) return;
     if (!canManageDoubts) {
-      toast.error('Apenas membros do Diretório e Super Admin podem responder dúvidas.');
+      toast.error('Apenas membros do Diretório e a criadora do site podem responder dúvidas.');
       return;
     }
 
@@ -254,8 +254,8 @@ export default function DirectorioDoubts({
 
     setIsSubmittingResponse(true);
     try {
-      const responderRole = isSuperAdmin ? 'Super Admin' : 'Membro do Diretório';
-      const responderName = currentUserName || (isSuperAdmin ? 'Super Admin' : 'Membro do Diretório');
+      const responderRole = isSuperAdmin ? 'Criadora do site' : 'Membro do Diretório';
+      const responderName = currentUserName || (isSuperAdmin ? 'Criadora do site' : 'Membro do Diretório');
 
       const updates: Partial<Doubt> = {
         status: responseStatus,
@@ -292,7 +292,7 @@ export default function DirectorioDoubts({
     }
   };
 
-  // Excluir Dúvida (Autor se estiver pendente, ou Diretório/Super Admin a qualquer momento)
+  // Excluir Dúvida (Autor se estiver pendente, ou Diretório/criadora do site a qualquer momento)
   const handleDeleteDoubt = async (doubt: Doubt) => {
     const isAuthor = doubt.userId === currentUserUid;
     if (!canManageDoubts && !isAuthor) {
@@ -371,7 +371,7 @@ export default function DirectorioDoubts({
             </span>
             {canManageDoubts && (
               <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-['Space_Mono'] uppercase tracking-wider font-bold rounded">
-                Visão do {isSuperAdmin ? 'Super Admin' : 'Membro do Diretório'}
+                Visão da {isSuperAdmin ? 'criadora do site' : 'membro do Diretório'}
               </span>
             )}
           </div>
@@ -400,12 +400,12 @@ export default function DirectorioDoubts({
           <Lock size={18} className="text-emerald-400 shrink-0 mt-0.5" />
           <div>
             <span className="font-bold text-emerald-300 uppercase block mb-0.5">Canal Privado & Confidencial</span>
-            As perguntas cadastradas aqui são visíveis <strong>apenas para você</strong> e para os <strong>Membros do Diretório / Super Admin</strong>. Nenhum outro membro normal pode ver suas dúvidas ou as respostas que você receber.
+            As perguntas cadastradas aqui são visíveis <strong>apenas para você</strong> e para os <strong>membros do Diretório / criadora do site</strong>. Nenhum outro membro normal pode ver suas dúvidas ou as respostas que você receber.
           </div>
         </div>
       )}
 
-      {/* Cards de Métricas para Diretório / Super Admin */}
+      {/* Cards de Métricas para Diretório / criadora do site */}
       {canManageDoubts && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div 
@@ -675,7 +675,7 @@ export default function DirectorioDoubts({
 
                   {/* Ações */}
                   <div className="flex sm:flex-col items-center gap-2 self-end sm:self-start shrink-0 pt-2 sm:pt-0">
-                    {/* Botão Responder (Super Admin e Diretório) */}
+                    {/* Botão Responder (criadora do site e Diretório) */}
                     {canManageDoubts && (
                       <button
                         onClick={() => {
@@ -691,7 +691,7 @@ export default function DirectorioDoubts({
                       </button>
                     )}
 
-                    {/* Excluir (Autor se pendente, ou Diretório/Super Admin) */}
+                    {/* Excluir (Autor se pendente, ou Diretório/criadora do site) */}
                     {(canManageDoubts || (isAuthor && isPending)) && (
                       <button
                         onClick={() => handleDeleteDoubt(doubt)}
@@ -833,7 +833,7 @@ export default function DirectorioDoubts({
         </div>
       )}
 
-      {/* Modal: Responder Dúvida (Super Admin & Membro do Diretório) */}
+      {/* Modal: Responder Dúvida (criadora do site e Membro do Diretório) */}
       {selectedDoubtForAnswer && (
         <div 
           className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto"
@@ -846,7 +846,7 @@ export default function DirectorioDoubts({
             <div className="flex items-start justify-between pb-4 border-b border-gray-800 mb-5">
               <div>
                 <span className="text-[10px] text-emerald-400 font-['Space_Mono'] uppercase tracking-wider font-bold block mb-1">
-                  Resposta do {isSuperAdmin ? 'Super Admin' : 'Membro do Diretório'}
+                  Resposta da {isSuperAdmin ? 'criadora do site' : 'membro do Diretório'}
                 </span>
                 <h2 className="text-xl font-bold font-['Syne'] text-white">
                   Responder Dúvida do Membro
@@ -912,7 +912,7 @@ export default function DirectorioDoubts({
               </div>
 
               <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 text-[11px] text-emerald-300 font-['Space_Mono']">
-                Assinando como: <strong>{isSuperAdmin ? 'Super Admin' : 'Membro do Diretório'} ({currentUserName || currentUserEmail})</strong>
+                Assinando como: <strong>{isSuperAdmin ? 'criadora do site' : 'membro do Diretório'} ({currentUserName || currentUserEmail})</strong>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-800">

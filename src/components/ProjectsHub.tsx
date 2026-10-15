@@ -115,7 +115,7 @@ export default function ProjectsHub({
               return;
             }
           }
-          // Also check admins collection for Membro RH or Super Admin
+          // Também verifica a coleção de administradores para membros do RH ou a criadora do site
           const adminQ = query(collection(db, 'admins'), where('email', '==', activeEmail));
           const adminSnap = await getDocs(adminQ);
           if (!adminSnap.empty) {
@@ -130,7 +130,7 @@ export default function ProjectsHub({
     checkRH();
   }, [activeEmail, currentUserRole, isSuperAdminEmail, propIsRH]);
 
-  // Membros do RH, Super Admin e Administradores podem gerenciar e editar jogos e adicionar membros via filtro
+  // Membros do RH, a criadora do site e administradores podem gerenciar e editar jogos e adicionar membros via filtro
   const canEditGames = isAdmin || isSuperAdminEmail || isRHMember || Boolean(currentUserRole && (currentUserRole.toLowerCase().includes('rh') || currentUserRole.toLowerCase().includes('recursos humanos')));
 
   const [activeSubTab, setActiveSubTab] = useState<'projetos' | 'vagas' | 'mural' | 'proposta'>('projetos');
@@ -2298,7 +2298,7 @@ export default function ProjectsHub({
                     <span>Membros da Equipe</span>
                     {canEditGames && (
                       <span className="text-[10px] font-['Space_Mono'] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30 rounded font-normal normal-case">
-                        Filtro do Dashboard (RH / Super Admin)
+                        Filtro do Dashboard (RH / Criadora do site)
                       </span>
                     )}
                   </div>
@@ -2377,7 +2377,7 @@ export default function ProjectsHub({
                   </div>
                 )}
 
-                {/* Dashboard Member Filter Box for Super Admin and Membro do Diretório */}
+                {/* Filtro de membros do Dashboard para a criadora do site e o Membro do Diretório */}
                 {canEditGames && isMemberFilterOpen && (
                   <div className="mt-3 p-3.5 bg-gray-950 border border-emerald-500/50 rounded shadow-xl space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-gray-800">
@@ -2388,7 +2388,7 @@ export default function ProjectsHub({
                             Filtro de Membros da Equipe (Base do Dashboard / Diretório)
                           </span>
                           <span className="text-[10px] text-gray-400 font-['Space_Mono'] block">
-                            Super Admin e Membros do Diretório podem buscar, filtrar e adicionar membros com 1 clique
+                            A criadora do site e os Membros do Diretório podem buscar, filtrar e adicionar membros com 1 clique
                           </span>
                         </div>
                       </div>
@@ -2860,7 +2860,7 @@ export default function ProjectsHub({
                     <span>Membros da Equipe</span>
                     {canEditGames && (
                       <span className="text-[10px] font-['Space_Mono'] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 border border-emerald-500/30 rounded font-normal normal-case">
-                        Filtro do Dashboard (RH / Super Admin)
+                        Filtro do Dashboard (RH / Criadora do site)
                       </span>
                     )}
                   </div>
@@ -2939,7 +2939,7 @@ export default function ProjectsHub({
                   </div>
                 )}
 
-                {/* Dashboard Member Filter Box for Super Admin and Membro do Diretório */}
+                {/* Filtro de membros do Dashboard para a criadora do site e o Membro do Diretório */}
                 {canEditGames && isEditMemberFilterOpen && (
                   <div className="mt-3 p-3.5 bg-gray-950 border border-emerald-500/50 rounded shadow-xl space-y-3">
                     <div className="flex items-center justify-between pb-2 border-b border-gray-800">
@@ -2950,7 +2950,7 @@ export default function ProjectsHub({
                             Filtro de Membros da Equipe (Base do Dashboard / Diretório)
                           </span>
                           <span className="text-[10px] text-gray-400 font-['Space_Mono'] block">
-                            Super Admin e Membros do Diretório podem buscar, filtrar e adicionar membros com 1 clique
+                            A criadora do site e os Membros do Diretório podem buscar, filtrar e adicionar membros com 1 clique
                           </span>
                         </div>
                       </div>

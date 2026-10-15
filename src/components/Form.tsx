@@ -183,7 +183,7 @@ export default function Form({ user, token }: FormProps) {
             list.sort((a: any, b: any) => (String(a.name || '')).localeCompare(String(b.name || '')));
             setAllResponses(list);
           } catch (e) {
-            console.error("Failed to load all responses for super admin", e);
+            console.error("Falha ao carregar todas as respostas para a criadora do site", e);
           }
         }
       } catch (err) {

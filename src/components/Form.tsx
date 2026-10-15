@@ -149,21 +149,24 @@ export default function Form({ user, token }: FormProps) {
     const fetchExisting = async () => {
       if (!user) return;
       try {
+        const currentEmail = user.email?.toLowerCase().trim() || '';
+        const belongsToCurrentUser = (data: any) => {
+          const responseEmail = String(data.email || '').toLowerCase().trim();
+          return !responseEmail || responseEmail === currentEmail;
+        };
+
         let foundDoc: any = null;
-        // 1. Tentar buscar pelo UID autenticado do usuário
         const qUserId = query(collection(db, 'responses'), where('userId', '==', user.uid));
         const snapUserId = await getDocs(qUserId);
-        if (!snapUserId.empty) {
-          foundDoc = { id: snapUserId.docs[0].id, ...snapUserId.docs[0].data() };
-        } else if (user.email) {
-          // 2. Fallback essencial por e-mail: caso o membro tenha sido cadastrado via Dashboard ou lista
-          const cleanEmail = user.email.toLowerCase().trim();
-          const qEmail = query(collection(db, 'responses'), where('email', '==', cleanEmail));
+        const userIdDoc = snapUserId.docs.find(docSnapshot => belongsToCurrentUser(docSnapshot.data()));
+        if (userIdDoc) {
+          foundDoc = { id: userIdDoc.id, ...userIdDoc.data() };
+        } else if (currentEmail) {
+          const qEmail = query(collection(db, 'responses'), where('email', '==', currentEmail));
           const snapEmail = await getDocs(qEmail);
           if (!snapEmail.empty) {
             foundDoc = { id: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
-            // Vincular de forma permanente o UID do Google autenticado a essa resposta
-            await updateDoc(doc(db, 'responses', foundDoc.id), { userId: user.uid }).catch(() => {});
+            await updateDoc(doc(db, 'responses', foundDoc.id), { userId: user.uid });
           }
         }
 

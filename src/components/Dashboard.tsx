@@ -2081,7 +2081,7 @@ export default function Dashboard({
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-white font-bold text-base font-['Syne'] uppercase tracking-wide">
-                      Membros Ativos & Distribuição por League Role
+                      Membros Ativos & Distribuição por Função na Liga
                     </h3>
                     <span className="px-2 py-0.5 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px] font-['Space_Mono'] uppercase">
                       Ao Vivo

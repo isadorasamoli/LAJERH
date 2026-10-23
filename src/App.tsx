@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, wh
 import { db } from './lib/firebase';
 import { sendWelcomeEmail } from './lib/workspace';
 import { initAuth, googleSignIn, logout, getAccessToken } from './lib/auth';
-import { Terminal, LayoutDashboard, LogOut, Calendar as CalendarIcon, Moon, Sun, Settings, History, Gamepad2, HelpCircle } from 'lucide-react';
+import { Terminal, LayoutDashboard, LogOut, Calendar as CalendarIcon, Moon, Sun, Settings, History, Gamepad2, HelpCircle, FileText } from 'lucide-react';
 import Form from './components/Form';
 import Dashboard from './components/Dashboard';
 import CalendarTab from './components/CalendarTab';
@@ -13,10 +13,11 @@ import AuditLogs from './components/AuditLogs';
 import ProjectsHub from './components/ProjectsHub';
 import DirectorioDoubts from './components/DirectorioDoubts';
 import AdminAccessBlocked from './components/AdminAccessBlocked';
+import ExtensionProjectsAdmin from './components/ExtensionProjectsAdmin';
 import { toast } from 'react-hot-toast';
 
-export type TabType = 'form' | 'projects' | 'calendar' | 'doubts' | 'dashboard' | 'logs' | 'settings';
-export const ADMIN_TABS: TabType[] = ['dashboard', 'logs', 'settings'];
+export type TabType = 'form' | 'projects' | 'calendar' | 'doubts' | 'dashboard' | 'extension' | 'logs' | 'settings';
+export const ADMIN_TABS: TabType[] = ['dashboard', 'extension', 'logs', 'settings'];
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -32,7 +33,7 @@ export default function App() {
   const getTabFromUrl = (): TabType | null => {
     try {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
-      const validTabs: TabType[] = ['form', 'projects', 'calendar', 'doubts', 'dashboard', 'logs', 'settings'];
+      const validTabs: TabType[] = ['form', 'projects', 'calendar', 'doubts', 'dashboard', 'extension', 'logs', 'settings'];
       if (validTabs.includes(hash as TabType)) {
         return hash as TabType;
       }
@@ -423,6 +424,17 @@ export default function App() {
               Dashboard
             </button>
             <button
+              onClick={() => handleTabChange('extension')}
+              className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
+                activeTab === 'extension'
+                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
+              }`}
+            >
+              <FileText size={18} />
+              Projetos de Extensão
+            </button>
+            <button
               onClick={() => handleTabChange('logs')}
               className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
                 activeTab === 'logs' 
@@ -502,6 +514,16 @@ export default function App() {
                 }`}
               >
                 Dashboard
+              </button>
+              <button
+                onClick={() => handleTabChange('extension')}
+                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+                  activeTab === 'extension'
+                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
+                }`}
+              >
+                Projetos de Extensão
               </button>
               <button
                 onClick={() => handleTabChange('logs')}
@@ -585,6 +607,15 @@ export default function App() {
               />
             );
           })()}
+
+          {activeTab === 'extension' && (
+            isAdmin ? <ExtensionProjectsAdmin /> : (
+              <AdminAccessBlocked
+                title="Acesso Restrito: Projetos de Extensão"
+                onNavigateHome={() => handleTabChange('form')}
+              />
+            )
+          )}
 
           {activeTab === 'logs' && (
             isAdmin ? (

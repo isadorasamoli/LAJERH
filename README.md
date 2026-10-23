@@ -5,6 +5,7 @@ Portal interno da Liga Acadêmica de Jogos Eletrônicos. O sistema reúne o cada
 ## O que existe aqui
 
 - Formulário de cadastro e atualização de dados dos membros;
+- Formulário de projetos de extensão com exportação acadêmica em PDF;
 - Dashboard administrativo com filtros, aniversários e exportação de relatórios;
 - Catálogo de projetos, vagas e tarefas pontuais;
 - Calendário de eventos;

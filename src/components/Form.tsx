@@ -7,6 +7,7 @@ import { logAuditAction } from '../lib/audit';
 import { CheckCircle, Loader2, Send, ChevronDown, Check, FileText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { exportDetailedMemberPDF } from '../lib/exportDetailedMemberPDF';
+import ExtensionProjectForm from './ExtensionProjectForm';
 
 const AVAILABLE_ROLES = [
   'Programação',
@@ -33,6 +34,7 @@ export default function Form({ user, token }: FormProps) {
   const [allResponses, setAllResponses] = useState<any[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string>('me');
   const [fetchingExisting, setFetchingExisting] = useState(true);
+  const [formMode, setFormMode] = useState<'member' | 'extension'>('member');
 
   const isSuperAdmin = user?.email?.toLowerCase().trim() === 'isadora.mlima@ufpe.br' || 
     (user?.email?.toLowerCase().trim().startsWith('isadora.mlima@ufpe') ?? false) ||
@@ -461,6 +463,10 @@ export default function Form({ user, token }: FormProps) {
   const today = new Date().toISOString().split('T')[0];
   const isReadOnly = existingResponse && !existingResponse.editAuthorized && !isSuperAdmin;
 
+  if (formMode === 'extension' && user) {
+    return <ExtensionProjectForm user={user} onBack={() => setFormMode('member')} />;
+  }
+
   const selectedRoles: string[] = formData.leagueRole
     ? formData.leagueRole.split(',').map(r => r.trim()).filter(Boolean)
     : [];
@@ -490,6 +496,22 @@ export default function Form({ user, token }: FormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-3xl mx-auto space-y-8 pb-12">
+      <div className="flex flex-wrap gap-2 p-1 bg-[rgba(255,255,255,0.03)] border border-[var(--color-ink-faint)]">
+        <button
+          type="button"
+          onClick={() => setFormMode('member')}
+          className="flex-1 min-w-[220px] px-4 py-3 text-sm font-bold bg-emerald-500 text-gray-950 cursor-pointer"
+        >
+          Ficha cadastral de membro
+        </button>
+        <button
+          type="button"
+          onClick={() => setFormMode('extension')}
+          className="flex-1 min-w-[220px] px-4 py-3 text-sm font-bold text-emerald-300 hover:bg-emerald-500/10 cursor-pointer"
+        >
+          Projeto de extensão (novo)
+        </button>
+      </div>
       {isSuperAdmin && (
         <div className="w-full max-w-full p-5 bg-gradient-to-r from-emerald-950/40 to-slate-900 border border-emerald-500/40 shadow-lg space-y-3 mb-6 overflow-hidden box-border">
           <div className="flex items-center justify-between flex-wrap gap-2">

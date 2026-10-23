@@ -83,6 +83,35 @@ service cloud.firestore {
         && (!data.keys().hasAny(['lastEditedBy']) || (data.lastEditedBy is string && data.lastEditedBy.size() <= 255));
     }
 
+    function isValidExtensionProject(data) {
+      return data.keys().hasAll(['userId', 'authorEmail', 'title', 'coordinator', 'summary', 'justification', 'generalObjective', 'specificObjectives', 'methodology', 'targetAudience', 'expectedResults', 'createdAt', 'status'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.authorEmail is string && data.authorEmail.size() <= 255
+        && data.title is string && data.title.size() <= 500
+        && data.coordinator is string && data.coordinator.size() <= 255
+        && data.summary is string && data.summary.size() <= 10000
+        && data.justification is string && data.justification.size() <= 15000
+        && data.generalObjective is string && data.generalObjective.size() <= 5000
+        && data.specificObjectives is string && data.specificObjectives.size() <= 10000
+        && data.methodology is string && data.methodology.size() <= 15000
+        && data.targetAudience is string && data.targetAudience.size() <= 5000
+        && data.expectedResults is string && data.expectedResults.size() <= 10000
+        && data.createdAt is number
+        && data.status in ['enviada', 'em_analise', 'aprovada', 'rejeitada']
+        && (!data.keys().hasAny(['institution', 'department', 'area', 'duration', 'location', 'keywords', 'schedule', 'team', 'references', 'budget', 'authorName']) ||
+          (!data.keys().hasAny(['institution']) || data.institution is string) &&
+          (!data.keys().hasAny(['department']) || data.department is string) &&
+          (!data.keys().hasAny(['area']) || data.area is string) &&
+          (!data.keys().hasAny(['duration']) || data.duration is string) &&
+          (!data.keys().hasAny(['location']) || data.location is string) &&
+          (!data.keys().hasAny(['keywords']) || data.keywords is string) &&
+          (!data.keys().hasAny(['schedule']) || data.schedule is string) &&
+          (!data.keys().hasAny(['team']) || data.team is string) &&
+          (!data.keys().hasAny(['references']) || data.references is string) &&
+          (!data.keys().hasAny(['budget']) || data.budget is string) &&
+          (!data.keys().hasAny(['authorName']) || data.authorName is string));
+    }
+
     function isValidEvent(data) {
       return data.keys().hasAll(['userId', 'title', 'description', 'duration', 'date', 'createdAt'])
         && data.userId is string
@@ -210,6 +239,24 @@ service cloud.firestore {
         && isValidResponse(incoming());
         
       // Exclusão restrita exclusivamente a administradores
+      allow delete: if isAdmin();
+    }
+
+    match /extensionProjects/{projectId} {
+      allow read: if isSignedIn() && (
+        isAdmin() ||
+        (resource != null && resource.data.userId == request.auth.uid)
+      );
+      allow create: if isSignedIn()
+        && isValidId(projectId)
+        && incoming().userId == request.auth.uid
+        && isValidExtensionProject(incoming());
+      allow update: if isAdmin() || (
+        isSignedIn() &&
+        existing().userId == request.auth.uid &&
+        incoming().userId == request.auth.uid &&
+        isValidExtensionProject(incoming())
+      );
       allow delete: if isAdmin();
     }
 

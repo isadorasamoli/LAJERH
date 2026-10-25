@@ -163,6 +163,24 @@ service cloud.firestore {
         && data.createdAt is number;
     }
 
+    function isValidInformalProject(data) {
+      return data.keys().hasAll(['userId', 'authorName', 'title', 'description', 'status', 'createdAt'])
+        && data.userId is string && data.userId.size() <= 128
+        && data.authorName is string && data.authorName.size() <= 255
+        && data.title is string && data.title.size() <= 255
+        && data.description is string && data.description.size() <= 5000
+        && data.status in ['Ideia', 'Em desenvolvimento', 'Em testes', 'Publicado', 'Pausado']
+        && data.createdAt is number
+        && (!data.keys().hasAny(['authorEmail', 'genre', 'engine', 'repositoryUrl', 'demoUrl', 'teamMembers', 'technologies']) ||
+          (!data.keys().hasAny(['authorEmail']) || data.authorEmail is string) &&
+          (!data.keys().hasAny(['genre']) || data.genre is string) &&
+          (!data.keys().hasAny(['engine']) || data.engine is string) &&
+          (!data.keys().hasAny(['repositoryUrl']) || data.repositoryUrl is string) &&
+          (!data.keys().hasAny(['demoUrl']) || data.demoUrl is string) &&
+          (!data.keys().hasAny(['teamMembers']) || data.teamMembers is string) &&
+          (!data.keys().hasAny(['technologies']) || data.technologies is string));
+    }
+
     function isValidOpening(data) {
       return data.keys().hasAll(['role', 'projectId', 'projectName', 'description', 'status', 'openedAt'])
         && data.role is string && data.role.size() <= 255
@@ -312,6 +330,19 @@ service cloud.firestore {
       allow update: if isRHorSuperAdmin()
         && isValidProject(incoming());
       allow delete: if isRHorSuperAdmin();
+    }
+
+    match /informalProjects/{projectId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && isValidId(projectId)
+        && incoming().userId == request.auth.uid
+        && isValidInformalProject(incoming());
+      allow update: if isSignedIn() && (
+        isAdmin() ||
+        (existing().userId == request.auth.uid && incoming().userId == request.auth.uid)
+      ) && isValidInformalProject(incoming());
+      allow delete: if isAdmin() || (isSignedIn() && existing().userId == request.auth.uid);
     }
 
     match /openings/{openingId} {

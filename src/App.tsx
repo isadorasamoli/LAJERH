@@ -14,9 +14,10 @@ import ProjectsHub from './components/ProjectsHub';
 import DirectorioDoubts from './components/DirectorioDoubts';
 import AdminAccessBlocked from './components/AdminAccessBlocked';
 import ExtensionProjectsAdmin from './components/ExtensionProjectsAdmin';
+import InformalProjects from './components/InformalProjects';
 import { toast } from 'react-hot-toast';
 
-export type TabType = 'form' | 'projects' | 'calendar' | 'doubts' | 'dashboard' | 'extension' | 'logs' | 'settings';
+export type TabType = 'form' | 'projects' | 'informal' | 'calendar' | 'doubts' | 'dashboard' | 'extension' | 'logs' | 'settings';
 export const ADMIN_TABS: TabType[] = ['dashboard', 'extension', 'logs', 'settings'];
 
 export default function App() {
@@ -33,7 +34,7 @@ export default function App() {
   const getTabFromUrl = (): TabType | null => {
     try {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
-      const validTabs: TabType[] = ['form', 'projects', 'calendar', 'doubts', 'dashboard', 'extension', 'logs', 'settings'];
+      const validTabs: TabType[] = ['form', 'projects', 'informal', 'calendar', 'doubts', 'dashboard', 'extension', 'logs', 'settings'];
       if (validTabs.includes(hash as TabType)) {
         return hash as TabType;
       }
@@ -387,6 +388,17 @@ export default function App() {
           Projetos & Oportunidades
         </button>
         <button
+          onClick={() => handleTabChange('informal')}
+          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
+            activeTab === 'informal'
+              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
+          }`}
+        >
+          <Gamepad2 size={18} />
+          Projetos Informais
+        </button>
+        <button
           onClick={() => handleTabChange('calendar')}
           className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
             activeTab === 'calendar' 
@@ -484,6 +496,16 @@ export default function App() {
             Projetos & Oportunidades
           </button>
           <button
+            onClick={() => handleTabChange('informal')}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+              activeTab === 'informal'
+                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
+            }`}
+          >
+            Projetos Informais
+          </button>
+          <button
             onClick={() => handleTabChange('calendar')}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
               activeTab === 'calendar' 
@@ -567,6 +589,7 @@ export default function App() {
               />
             );
           })()}
+          {activeTab === 'informal' && user && <InformalProjects user={user} isAdmin={isAdmin} />}
           {activeTab === 'calendar' && <CalendarTab isAdmin={isAdmin} token={token || ''} />}
           {activeTab === 'doubts' && (() => {
             const currentEmail = user?.email?.toLowerCase().trim() || '';

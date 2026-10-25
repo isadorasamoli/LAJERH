@@ -355,17 +355,29 @@ export default function ProjectsHub({
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [projSnap, openSnap, taskSnap, propSnap] = await Promise.all([
+      const [projSnap, openSnap, taskSnap] = await Promise.all([
         getDocs(query(collection(db, 'projects'), orderBy('createdAt', 'desc'))),
         getDocs(query(collection(db, 'openings'), orderBy('openedAt', 'desc'))),
-        getDocs(query(collection(db, 'tasks'), orderBy('createdAt', 'desc'))),
-        getDocs(query(collection(db, 'proposals'), orderBy('createdAt', 'desc')))
+        getDocs(query(collection(db, 'tasks'), orderBy('createdAt', 'desc')))
       ]);
 
       setProjects(projSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProjectItem)));
       setOpenings(openSnap.docs.map(d => ({ id: d.id, ...d.data() } as OpeningItem)));
       setTasks(taskSnap.docs.map(d => ({ id: d.id, ...d.data() } as TaskItem)));
-      setProposals(propSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProposalItem)));
+
+      // A listagem completa de propostas é restrita ao RH/admin. Ela não
+      // pode bloquear o carregamento das áreas públicas do hub.
+      if (canEditGames) {
+        try {
+          const propSnap = await getDocs(query(collection(db, 'proposals'), orderBy('createdAt', 'desc')));
+          setProposals(propSnap.docs.map(d => ({ id: d.id, ...d.data() } as ProposalItem)));
+        } catch (proposalError) {
+          console.error('Erro ao carregar propostas do hub:', proposalError);
+          setProposals([]);
+        }
+      } else {
+        setProposals([]);
+      }
     } catch (err) {
       console.error('Error fetching projects hub data:', err);
       toast.error('Erro ao carregar dados de projetos');

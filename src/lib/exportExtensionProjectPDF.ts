@@ -10,6 +10,7 @@ export interface ExtensionProjectData {
   area?: string;
   duration?: string;
   location?: string;
+  sustainableDevelopmentGoal?: string;
   summary?: string;
   keywords?: string;
   justification?: string;
@@ -18,6 +19,7 @@ export interface ExtensionProjectData {
   methodology?: string;
   targetAudience?: string;
   expectedResults?: string;
+  possibleCoordinators?: string;
   schedule?: string;
   team?: string;
   references?: string;
@@ -30,17 +32,19 @@ export interface ExtensionProjectData {
 const valueOrFallback = (value?: string) => value?.trim() || 'Não informado';
 
 const sections: Array<{ key: keyof ExtensionProjectData; title: string }> = [
+  { key: 'sustainableDevelopmentGoal', title: '1. Objetivo de Desenvolvimento Sustentável' },
   { key: 'summary', title: '2. Resumo da Ação' },
   { key: 'keywords', title: '3. Palavras-chave' },
   { key: 'justification', title: '4. Justificativa' },
-  { key: 'generalObjective', title: '5. Objetivo Geral' },
-  { key: 'specificObjectives', title: '6. Objetivos Específicos' },
-  { key: 'methodology', title: '7. Metodologia' },
-  { key: 'targetAudience', title: '8. Público-alvo' },
-  { key: 'expectedResults', title: '9. Resultados Esperados' },
+  { key: 'generalObjective', title: '5. Objetivos Gerais' },
+  { key: 'specificObjectives', title: '5.1. Objetivos Específicos' },
+  { key: 'methodology', title: '6. Metodologia' },
+  { key: 'targetAudience', title: '6.1. Público-alvo' },
+  { key: 'expectedResults', title: '7. Resultados Esperados' },
+  { key: 'possibleCoordinators', title: '8. Possíveis Professores Coordenadores do Projeto' },
   { key: 'schedule', title: '10. Cronograma' },
   { key: 'team', title: '11. Equipe Executora' },
-  { key: 'references', title: '12. Referências' },
+  { key: 'references', title: '9. Referências' },
   { key: 'budget', title: '13. Orçamento e Recursos' }
 ];
 

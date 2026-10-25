@@ -98,17 +98,19 @@ service cloud.firestore {
         && data.expectedResults is string && data.expectedResults.size() <= 10000
         && data.createdAt is number
         && data.status in ['enviada', 'em_analise', 'aprovada', 'rejeitada']
-        && (!data.keys().hasAny(['institution', 'department', 'area', 'duration', 'location', 'keywords', 'schedule', 'team', 'references', 'budget', 'authorName']) ||
+        && (!data.keys().hasAny(['institution', 'department', 'area', 'duration', 'location', 'sustainableDevelopmentGoal', 'keywords', 'schedule', 'team', 'references', 'budget', 'authorName', 'possibleCoordinators']) ||
           (!data.keys().hasAny(['institution']) || data.institution is string) &&
           (!data.keys().hasAny(['department']) || data.department is string) &&
           (!data.keys().hasAny(['area']) || data.area is string) &&
           (!data.keys().hasAny(['duration']) || data.duration is string) &&
           (!data.keys().hasAny(['location']) || data.location is string) &&
+          (!data.keys().hasAny(['sustainableDevelopmentGoal']) || data.sustainableDevelopmentGoal is string) &&
           (!data.keys().hasAny(['keywords']) || data.keywords is string) &&
           (!data.keys().hasAny(['schedule']) || data.schedule is string) &&
           (!data.keys().hasAny(['team']) || data.team is string) &&
           (!data.keys().hasAny(['references']) || data.references is string) &&
           (!data.keys().hasAny(['budget']) || data.budget is string) &&
+          (!data.keys().hasAny(['possibleCoordinators']) || data.possibleCoordinators is string) &&
           (!data.keys().hasAny(['authorName']) || data.authorName is string));
     }
 

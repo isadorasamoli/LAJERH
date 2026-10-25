@@ -16,28 +16,70 @@ type FormState = Required<Omit<ExtensionProjectData, 'id' | 'createdAt' | 'autho
 const initialState: FormState = {
   title: '', coordinator: '', institution: 'Universidade Federal de Pernambuco',
   department: '', area: 'Tecnologia e Desenvolvimento de Jogos', duration: '',
-  location: '', summary: '', keywords: '', justification: '', generalObjective: '',
+  location: '', sustainableDevelopmentGoal: '', summary: '', keywords: '', justification: '', generalObjective: '',
   specificObjectives: '', methodology: '', targetAudience: '', expectedResults: '',
-  schedule: '', team: '', references: '', budget: ''
+  possibleCoordinators: '', schedule: '', team: '', references: '', budget: ''
 };
 
-const fields: Array<{ key: keyof FormState; label: string; rows: number; required?: boolean }> = [
+const fields: Array<{ key: keyof FormState; label: string; rows: number; required?: boolean; placeholder?: string }> = [
   { key: 'title', label: 'Título da proposta', rows: 1, required: true },
   { key: 'coordinator', label: 'Coordenação / responsável', rows: 1, required: true },
   { key: 'department', label: 'Departamento, curso ou unidade', rows: 1 },
   { key: 'duration', label: 'Duração prevista', rows: 1 },
   { key: 'location', label: 'Local de realização', rows: 1 },
+  {
+    key: 'sustainableDevelopmentGoal',
+    label: '1. Objetivo de Desenvolvimento Sustentável',
+    rows: 4,
+    required: true,
+    placeholder: 'Exemplo: ODS 4 - Educação de Qualidade: promover a formação interdisciplinar em desenvolvimento de jogos digitais.'
+  },
   { key: 'summary', label: '2. Resumo da Ação', rows: 5, required: true },
-  { key: 'keywords', label: '3. Palavras-chave', rows: 2, required: true },
+  {
+    key: 'keywords',
+    label: '3. Palavras-chave',
+    rows: 2,
+    required: true,
+    placeholder: 'Exemplo: jogos digitais; extensão universitária; formação interdisciplinar; tecnologia; inovação.'
+  },
   { key: 'justification', label: '4. Justificativa', rows: 7, required: true },
-  { key: 'generalObjective', label: '5. Objetivo Geral', rows: 4, required: true },
+  {
+    key: 'generalObjective',
+    label: '5. Objetivos Gerais',
+    rows: 5,
+    required: true,
+    placeholder: 'Exemplo: Fortalecer a formação acadêmica e profissional em desenvolvimento de jogos digitais por meio de uma ação extensionista interdisciplinar.'
+  },
   { key: 'specificObjectives', label: '6. Objetivos Específicos', rows: 6, required: true },
-  { key: 'methodology', label: '7. Metodologia', rows: 8, required: true },
+  {
+    key: 'methodology',
+    label: '6. Metodologia',
+    rows: 8,
+    required: true,
+    placeholder: 'Exemplo: realização de minicursos introdutórios, oficinas práticas e uma game jam com equipes multidisciplinares.'
+  },
   { key: 'targetAudience', label: '8. Público-alvo', rows: 4, required: true },
-  { key: 'expectedResults', label: '9. Resultados Esperados', rows: 6, required: true },
+  {
+    key: 'expectedResults',
+    label: '7. Resultados Esperados',
+    rows: 6,
+    required: true,
+    placeholder: 'Exemplo: capacitar estudantes, estimular a colaboração entre áreas e desenvolver protótipos de jogos digitais.'
+  },
+  {
+    key: 'possibleCoordinators',
+    label: '8. Possíveis Professores Coordenadores do Projeto',
+    rows: 5,
+    placeholder: 'Exemplo: Prof. Geber Ramalho: Professor de Jogos Digitais no Cin/UFPE com ampla experiência do mercado e contatos do Estado.'
+  },
   { key: 'schedule', label: '10. Cronograma', rows: 6 },
   { key: 'team', label: '11. Equipe Executora', rows: 5 },
-  { key: 'references', label: '12. Referências', rows: 5 },
+  {
+    key: 'references',
+    label: '9. Referências',
+    rows: 5,
+    placeholder: 'Exemplo: ABRAGAMES. Pesquisa da Indústria Brasileira de Games. 2023.\nUNESCO. Educação para o desenvolvimento sustentável.'
+  },
   { key: 'budget', label: '13. Orçamento e Recursos', rows: 4 }
 ];
 
@@ -103,7 +145,7 @@ export default function ExtensionProjectForm({ user, onBack }: ExtensionProjectF
             {field.rows === 1 ? (
               <input required={field.required} value={form[field.key]} onChange={event => setForm(previous => ({ ...previous, [field.key]: event.target.value }))} className="w-full bg-transparent border border-[var(--color-ink-faint)] p-3 text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)]" />
             ) : (
-              <textarea required={field.required} rows={field.rows} value={form[field.key]} onChange={event => setForm(previous => ({ ...previous, [field.key]: event.target.value }))} className="w-full bg-transparent border border-[var(--color-ink-faint)] p-3 text-[var(--color-ink)] outline-none focus:border-[var(--color-accent)] resize-y" />
+              <textarea required={field.required} rows={field.rows} placeholder={field.placeholder} value={form[field.key]} onChange={event => setForm(previous => ({ ...previous, [field.key]: event.target.value }))} className="w-full bg-transparent border border-[var(--color-ink-faint)] p-3 text-[var(--color-ink)] placeholder:text-gray-500 outline-none focus:border-[var(--color-accent)] resize-y" />
             )}
           </label>
         ))}

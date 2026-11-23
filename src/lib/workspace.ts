@@ -1,5 +1,41 @@
 export const SUPER_ADMIN_EMAIL = 'isadora.mlima@ufpe.br';
 
+export const copyGoogleDocument = async (
+  accessToken: string,
+  templateId: string,
+  name: string
+) => {
+  if (!accessToken) {
+    throw new Error('Autorize novamente o Google para permitir a criacao de documentos no Drive.');
+  }
+  if (!templateId.trim()) {
+    throw new Error('Informe o ID do modelo do Google Docs nas configuracoes.');
+  }
+
+  const response = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(templateId.trim())}/copy`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        name,
+        mimeType: 'application/vnd.google-apps.document'
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Nao foi possivel copiar o modelo: ${error}`);
+  }
+
+  const file = await response.json();
+  return `https://docs.google.com/document/d/${file.id}/edit`;
+};
+
 export const fetchUpcomingEvents = async (accessToken: string) => {
   try {
     const timeMin = new Date().toISOString();

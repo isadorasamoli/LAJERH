@@ -33,8 +33,31 @@ export interface ProjectItem {
   repositoryUrl?: string;
   buildUrl?: string;
   itchUrl?: string;
+  gddUrl?: string;
+  scriptUrl?: string;
+  files?: ProjectFileItem[];
+  devlogs?: ProjectDevlogItem[];
   teamMembers?: string;
   coverEmoji?: string;
+  createdAt: number;
+}
+
+export interface ProjectFileItem {
+  id: string;
+  name: string;
+  url: string;
+  type?: string;
+  createdAt: number;
+}
+
+export interface ProjectDevlogItem {
+  id: string;
+  date: string;
+  author: string;
+  title: string;
+  summary: string;
+  nextSteps?: string;
+  blockers?: string;
   createdAt: number;
 }
 
@@ -68,6 +91,9 @@ export interface TaskItem {
   claimedByEmail?: string;
   claimedAt?: number;
   deliveredAt?: number;
+  boardStatus?: 'todo' | 'doing' | 'done';
+  priority?: 'baixa' | 'media' | 'alta' | 'bloqueadora';
+  delivery?: string;
   createdAt: number;
 }
 

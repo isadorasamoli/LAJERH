@@ -53,6 +53,7 @@ import {
   Edit2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import ProjectWorkspace from './ProjectWorkspace';
 
 interface ProjectsHubProps {
   isAdmin?: boolean;
@@ -1810,8 +1811,45 @@ export default function ProjectsHub({
         </div>
       )}
 
-      {/* MODAL: PROJECT DETAILS (GDD DE 1 PÁGINA) */}
       {selectedProject && (
+        <ProjectWorkspace
+          project={selectedProject}
+          openings={openings}
+          tasks={tasks}
+          canManage={canEditGames}
+          onClose={() => setSelectedProject(null)}
+          onProjectUpdated={updatedProject => {
+            setSelectedProject(updatedProject);
+            setProjects(prev => prev.map(project => project.id === updatedProject.id ? updatedProject : project));
+          }}
+          onTaskUpdated={updatedTask => {
+            setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
+          }}
+          onTaskCreated={async task => {
+            try {
+              const docRef = await addDoc(collection(db, 'tasks'), task);
+              setTasks(prev => [{ id: docRef.id, ...task }, ...prev]);
+              toast.success('Tarefa adicionada ao projeto');
+            } catch (error) {
+              console.error(error);
+              toast.error('Erro ao criar tarefa');
+            }
+          }}
+          onOpeningCreated={async opening => {
+            try {
+              const docRef = await addDoc(collection(db, 'openings'), opening);
+              setOpenings(prev => [{ id: docRef.id, ...opening }, ...prev]);
+              toast.success('Vaga adicionada ao projeto');
+            } catch (error) {
+              console.error(error);
+              toast.error('Erro ao criar vaga');
+            }
+          }}
+        />
+      )}
+
+      {/* MODAL: PROJECT DETAILS (LEGACY - DESATIVADO) */}
+      {false && selectedProject && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
           onClick={() => setSelectedProject(null)}

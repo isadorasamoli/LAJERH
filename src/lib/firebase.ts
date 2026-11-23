@@ -9,6 +9,10 @@ export const auth = getAuth(app);
 
 export const provider = new GoogleAuthProvider();
 provider.addScope('https://www.googleapis.com/auth/drive.file');
+provider.addScope('https://www.googleapis.com/auth/gmail.send');
+provider.setCustomParameters({
+  prompt: 'select_account consent',
+});
 
 export enum OperationType {
   CREATE = 'create',

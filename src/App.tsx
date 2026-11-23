@@ -283,6 +283,7 @@ export default function App() {
       const messages: Record<string, string> = {
         'auth/unauthorized-domain': `Este domínio (${window.location.hostname}) ainda não foi autorizado no Firebase. Adicione-o em Authentication > Settings > Authorized domains.`,
         'auth/operation-not-allowed': 'O login com Google ainda não está habilitado no Firebase.',
+        'auth/oauth-not-verified': 'Acesso bloqueado pelo Google: publique o consentimento OAuth ou adicione sua conta em Usuários de teste no Google Cloud Console.',
         'auth/popup-blocked': 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente novamente.',
         'auth/popup-closed-by-user': 'A janela de login foi fechada antes da conclusão.',
       };

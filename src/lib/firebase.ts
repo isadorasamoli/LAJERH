@@ -1,14 +1,15 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
+export const functions = getFunctions(app, import.meta.env.VITE_LAJE_FUNCTIONS_REGION || 'us-central1');
 
 export const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/drive.file');
 provider.addScope('https://www.googleapis.com/auth/gmail.send');
 provider.setCustomParameters({
   prompt: 'select_account consent',

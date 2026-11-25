@@ -31,6 +31,32 @@ service cloud.firestore {
       );
     }
 
+    function isProjectOwner(data) {
+      return isSignedIn() && (
+        (data.keys().hasAny(['leaderUid']) && data.leaderUid == request.auth.uid) ||
+        (data.keys().hasAny(['responsibleDirectorUid']) && data.responsibleDirectorUid == request.auth.uid)
+      );
+    }
+
+    function isProjectTeamMember(data) {
+      return isSignedIn() &&
+        data.keys().hasAny(['teamMemberUids']) &&
+        data.teamMemberUids is list &&
+        request.auth.uid in data.teamMemberUids;
+    }
+
+    function isProjectManager(data) {
+      return isProjectOwner(data) || isProjectTeamMember(data);
+    }
+
+    function canManageProject(projectId) {
+      return isAdmin() || (
+        projectId is string &&
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        isProjectManager(get(/databases/$(database)/documents/projects/$(projectId)).data)
+      );
+    }
+
     function isRHorSuperAdmin() {
       return isAdmin();
     }
@@ -160,7 +186,12 @@ service cloud.firestore {
         && data.status is string && data.status.size() <= 50
         && data.engine is string && data.engine.size() <= 100
         && data.leader is string && data.leader.size() <= 255
-        && data.createdAt is number;
+        && data.createdAt is number
+        && (!data.keys().hasAny(['leaderUid']) || (data.leaderUid is string && data.leaderUid.size() <= 128))
+        && (!data.keys().hasAny(['responsibleDirectorUid']) || (data.responsibleDirectorUid is string && data.responsibleDirectorUid.size() <= 128))
+        && (!data.keys().hasAny(['teamMemberUids']) || (data.teamMemberUids is list && data.teamMemberUids.size() <= 100))
+        && (!data.keys().hasAny(['boardsUrl']) || (data.boardsUrl is string && data.boardsUrl.size() <= 500))
+        && (!data.keys().hasAny(['driveUrl']) || (data.driveUrl is string && data.driveUrl.size() <= 500));
     }
 
     function isValidInformalProject(data) {
@@ -327,8 +358,21 @@ service cloud.firestore {
       allow create: if isRHorSuperAdmin()
         && isValidId(projectId)
         && isValidProject(incoming());
-      allow update: if isRHorSuperAdmin()
-        && isValidProject(incoming());
+      allow update: if isAdmin() && isValidProject(incoming())
+        || isProjectOwner(existing()) && isValidProject(incoming())
+        || isProjectTeamMember(existing())
+          && !isAdmin()
+          && !isProjectOwner(existing())
+          && existing().leaderUid == incoming().leaderUid
+          && existing().responsibleDirectorUid == incoming().responsibleDirectorUid
+          && existing().teamMemberUids == incoming().teamMemberUids
+          && existing().diff(incoming()).affectedKeys().hasOnly([
+            'gddUrl', 'gddDocumentId', 'scriptUrl', 'scriptDocumentId',
+            'boardsUrl', 'repositoryUrl', 'buildUrl', 'itchUrl', 'driveUrl',
+            'files', 'devlogs',
+            'lastCheckInDate', 'lastCheckInNotes'
+          ])
+          && isValidProject(incoming());
       allow delete: if isRHorSuperAdmin();
     }
 
@@ -347,7 +391,7 @@ service cloud.firestore {
 
     match /openings/{openingId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin()
+      allow create: if canManageProject(incoming().projectId)
         && isValidId(openingId)
         && isValidOpening(incoming());
       allow update: if isAdmin()
@@ -357,7 +401,7 @@ service cloud.firestore {
 
     match /tasks/{taskId} {
       allow read: if isSignedIn();
-      allow create: if isAdmin()
+      allow create: if canManageProject(incoming().projectId)
         && isValidId(taskId)
         && isValidTask(incoming());
       allow update: if isSignedIn()

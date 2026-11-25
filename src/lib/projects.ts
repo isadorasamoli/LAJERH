@@ -20,8 +20,11 @@ export interface ProjectItem {
   engine: string;
   genre: string;
   leader: string;
+  leaderUid?: string;
   leaderDiscord?: string;
   responsibleDirector?: string;
+  responsibleDirectorUid?: string;
+  teamMemberUids?: string[];
   semester?: string;
   description: string;
   elevatorPitch?: string;
@@ -31,10 +34,14 @@ export interface ProjectItem {
   lastCheckInDate?: string;
   lastCheckInNotes?: string;
   repositoryUrl?: string;
+  boardsUrl?: string;
+  driveUrl?: string;
   buildUrl?: string;
   itchUrl?: string;
   gddUrl?: string;
+  gddDocumentId?: string;
   scriptUrl?: string;
+  scriptDocumentId?: string;
   files?: ProjectFileItem[];
   devlogs?: ProjectDevlogItem[];
   teamMembers?: string;

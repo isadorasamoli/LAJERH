@@ -159,8 +159,10 @@ export default function ProjectsHub({
     engine: 'Godot',
     genre: '',
     leader: '',
+    leaderUid: '',
     leaderDiscord: '',
     responsibleDirector: 'Diretoria de Projetos',
+    responsibleDirectorUid: '',
     semester: '2026.2',
     description: '',
     elevatorPitch: '',
@@ -168,6 +170,7 @@ export default function ProjectsHub({
     pilares: '',
     targetScope: 'Protótipo jogável neste semestre',
     teamMembers: '',
+    teamMemberUids: [] as string[],
     coverEmoji: '🎮'
   });
 
@@ -177,8 +180,10 @@ export default function ProjectsHub({
     engine: 'Godot',
     genre: '',
     leader: currentUserName || '',
+    leaderUid: '',
     leaderDiscord: '',
     responsibleDirector: 'Diretoria de Projetos',
+    responsibleDirectorUid: '',
     semester: '2026.2',
     description: '',
     elevatorPitch: '',
@@ -186,6 +191,7 @@ export default function ProjectsHub({
     pilares: '',
     targetScope: 'Protótipo jogável neste semestre',
     teamMembers: '',
+    teamMemberUids: [] as string[],
     coverEmoji: '🎮',
     notifyMembers: true
   });
@@ -204,6 +210,17 @@ export default function ProjectsHub({
   const [editMemberRoleFilter, setEditMemberRoleFilter] = useState('all');
   const [editMemberProjectFilter, setEditMemberProjectFilter] = useState<'all' | 'available' | 'in_project'>('all');
   const [editMemberCourseFilter, setEditMemberCourseFilter] = useState('all');
+
+  const retainTeamMemberUids = (teamNames: string, selectedUids: string[]) => {
+    const displayedNames = teamNames
+      .split(',')
+      .map(name => name.trim().replace(/\s+\([^)]*\)$/, '').toLowerCase())
+      .filter(Boolean);
+    return selectedUids.filter(uid => {
+      const member = registeredMembers.find(item => item.userId === uid);
+      return Boolean(member?.name && displayedNames.includes(String(member.name).trim().toLowerCase()));
+    });
+  };
 
   useEffect(() => {
     const fetchRegisteredMembers = async () => {
@@ -267,9 +284,15 @@ export default function ProjectsHub({
       toast.success(`"${memberName}" adicionado(a) à equipe!`);
     }
 
+    const memberUid = typeof member.userId === 'string' ? member.userId : '';
     setNewProjectForm(prev => ({
       ...prev,
-      teamMembers: updated.join(', ')
+      teamMembers: updated.join(', '),
+      teamMemberUids: memberUid
+        ? isAlreadyIn
+          ? prev.teamMemberUids.filter(uid => uid !== memberUid)
+          : Array.from(new Set([...prev.teamMemberUids, memberUid]))
+        : prev.teamMemberUids
     }));
   };
 
@@ -298,9 +321,15 @@ export default function ProjectsHub({
       toast.success(`"${memberName}" adicionado(a) à equipe!`);
     }
 
+    const memberUid = typeof member.userId === 'string' ? member.userId : '';
     setEditProjectForm(prev => ({
       ...prev,
-      teamMembers: updated.join(', ')
+      teamMembers: updated.join(', '),
+      teamMemberUids: memberUid
+        ? isAlreadyIn
+          ? prev.teamMemberUids.filter(uid => uid !== memberUid)
+          : Array.from(new Set([...prev.teamMemberUids, memberUid]))
+        : prev.teamMemberUids
     }));
   };
 
@@ -406,8 +435,10 @@ export default function ProjectsHub({
         engine: newProjectForm.engine || 'Godot',
         genre: newProjectForm.genre || 'Gênero indefinido',
         leader: newProjectForm.leader.trim(),
+        leaderUid: newProjectForm.leaderUid,
         leaderDiscord: newProjectForm.leaderDiscord.trim(),
         responsibleDirector: newProjectForm.responsibleDirector || 'Diretoria de Projetos',
+        responsibleDirectorUid: newProjectForm.responsibleDirectorUid,
         semester: newProjectForm.semester || '2026.2',
         description: newProjectForm.description || newProjectForm.elevatorPitch || 'Sem descrição cadastrada.',
         elevatorPitch: newProjectForm.elevatorPitch || newProjectForm.description,
@@ -415,6 +446,7 @@ export default function ProjectsHub({
         pilares: newProjectForm.pilares || '',
         targetScope: newProjectForm.targetScope || 'Protótipo jogável neste semestre',
         teamMembers: newProjectForm.teamMembers || newProjectForm.leader,
+        teamMemberUids: newProjectForm.teamMemberUids,
         coverEmoji: newProjectForm.coverEmoji || '🎮',
         createdAt: Date.now()
       };
@@ -428,8 +460,10 @@ export default function ProjectsHub({
         engine: 'Godot',
         genre: '',
         leader: currentUserName || '',
+        leaderUid: '',
         leaderDiscord: '',
         responsibleDirector: 'Diretoria de Projetos',
+        responsibleDirectorUid: '',
         semester: '2026.2',
         description: '',
         elevatorPitch: '',
@@ -437,7 +471,9 @@ export default function ProjectsHub({
         pilares: '',
         targetScope: 'Protótipo jogável neste semestre',
         teamMembers: '',
-        coverEmoji: '🎮'
+        teamMemberUids: [],
+        coverEmoji: '🎮',
+        notifyMembers: true
       });
       await logAuditAction({
         action: 'Criação de Registro',
@@ -503,8 +539,10 @@ export default function ProjectsHub({
       engine: p.engine || 'Godot',
       genre: p.genre || '',
       leader: p.leader || '',
+      leaderUid: p.leaderUid || '',
       leaderDiscord: p.leaderDiscord || '',
       responsibleDirector: p.responsibleDirector || 'Diretoria de Projetos',
+      responsibleDirectorUid: p.responsibleDirectorUid || '',
       semester: p.semester || '2026.2',
       description: p.description || '',
       elevatorPitch: p.elevatorPitch || p.description || '',
@@ -512,6 +550,7 @@ export default function ProjectsHub({
       pilares: p.pilares || '',
       targetScope: p.targetScope || 'Protótipo jogável neste semestre',
       teamMembers: p.teamMembers || '',
+      teamMemberUids: p.teamMemberUids || [],
       coverEmoji: p.coverEmoji || '🎮'
     });
     setIsEditProjectModalOpen(true);
@@ -532,8 +571,10 @@ export default function ProjectsHub({
         engine: editProjectForm.engine || 'Godot',
         genre: editProjectForm.genre.trim() || 'Gênero indefinido',
         leader: editProjectForm.leader.trim(),
+        leaderUid: editProjectForm.leaderUid,
         leaderDiscord: editProjectForm.leaderDiscord.trim(),
         responsibleDirector: editProjectForm.responsibleDirector.trim() || 'Diretoria de Projetos',
+        responsibleDirectorUid: editProjectForm.responsibleDirectorUid,
         semester: editProjectForm.semester.trim() || '2026.2',
         description: editProjectForm.description.trim() || editProjectForm.elevatorPitch.trim() || 'Sem descrição cadastrada.',
         elevatorPitch: editProjectForm.elevatorPitch.trim() || editProjectForm.description.trim(),
@@ -541,6 +582,7 @@ export default function ProjectsHub({
         pilares: editProjectForm.pilares.trim(),
         targetScope: editProjectForm.targetScope.trim() || 'Protótipo jogável neste semestre',
         teamMembers: editProjectForm.teamMembers.trim() || editProjectForm.leader.trim(),
+        teamMemberUids: editProjectForm.teamMemberUids,
         coverEmoji: editProjectForm.coverEmoji || '🎮'
       };
 
@@ -1816,7 +1858,17 @@ export default function ProjectsHub({
           project={selectedProject}
           openings={openings}
           tasks={tasks}
-          canManage={canEditGames}
+          canManage={Boolean(
+            canEditGames ||
+            selectedProject.leaderUid === auth.currentUser?.uid ||
+            selectedProject.responsibleDirectorUid === auth.currentUser?.uid ||
+            selectedProject.teamMemberUids?.includes(auth.currentUser?.uid || '')
+          )}
+          canEditProject={Boolean(
+            canEditGames ||
+            selectedProject.leaderUid === auth.currentUser?.uid ||
+            selectedProject.responsibleDirectorUid === auth.currentUser?.uid
+          )}
           onClose={() => setSelectedProject(null)}
           onProjectUpdated={updatedProject => {
             setSelectedProject(updatedProject);
@@ -2280,9 +2332,27 @@ export default function ProjectsHub({
                     required
                     placeholder="Nome completo do líder"
                     value={newProjectForm.leader}
-                    onChange={e => setNewProjectForm({ ...newProjectForm, leader: e.target.value })}
+                    onChange={e => setNewProjectForm({ ...newProjectForm, leader: e.target.value, leaderUid: '' })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={newProjectForm.leaderUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setNewProjectForm(prev => ({
+                        ...prev,
+                        leaderUid: e.target.value,
+                        leader: member?.name || prev.leader
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta do líder para permissões do projeto"
+                  >
+                    <option value="">Associar conta do líder (necessário para permissões)</option>
+                    {registeredMembers.filter(item => typeof item.userId === 'string' && item.userId).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-gray-300 font-semibold mb-1 uppercase">Discord do Líder</label>
@@ -2293,6 +2363,28 @@ export default function ProjectsHub({
                     onChange={e => setNewProjectForm({ ...newProjectForm, leaderDiscord: e.target.value.replace(/^@/, '') })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={newProjectForm.responsibleDirectorUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setNewProjectForm(prev => ({
+                        ...prev,
+                        responsibleDirectorUid: e.target.value,
+                        responsibleDirector: member?.name || 'Diretoria de Projetos'
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta da diretoria responsável"
+                  >
+                    <option value="">Sem pessoa associada à diretoria</option>
+                    {registeredMembers.filter(item =>
+                      typeof item.userId === 'string' &&
+                      item.userId &&
+                      /diretoria|diretório/i.test(String(item.leagueRole || ''))
+                    ).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -2378,9 +2470,17 @@ export default function ProjectsHub({
                   placeholder="Ex: Maria (Líder), Lucas (Dev), Sofia (Arte)... ou clique no botão acima para abrir o filtro"
                   value={newProjectForm.teamMembers}
                   onFocus={() => { if (canEditGames && !isMemberFilterOpen) setIsMemberFilterOpen(true); }}
-                  onChange={e => setNewProjectForm({ ...newProjectForm, teamMembers: e.target.value })}
+                  onChange={e => {
+                    const teamMembers = e.target.value;
+                    setNewProjectForm(prev => ({
+                      ...prev,
+                      teamMembers,
+                      teamMemberUids: retainTeamMemberUids(teamMembers, prev.teamMemberUids)
+                    }));
+                  }}
                   className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                 />
+                <p className="mt-1 text-[10px] text-gray-500">Apenas membros adicionados pelo filtro de cadastro recebem permissões; texto digitado é só para exibição.</p>
 
                 {/* Chips of added members */}
                 {newProjectForm.teamMembers && (
@@ -2402,7 +2502,11 @@ export default function ProjectsHub({
                               .map(s => s.trim())
                               .filter(m => m !== memberName)
                               .join(', ');
-                            setNewProjectForm({ ...newProjectForm, teamMembers: updated });
+                            setNewProjectForm(prev => ({
+                              ...prev,
+                              teamMembers: updated,
+                              teamMemberUids: retainTeamMemberUids(updated, prev.teamMemberUids)
+                            }));
                             toast.success(`"${memberName}" removido(a) da equipe`);
                           }}
                           className="hover:text-red-400 cursor-pointer p-0.5 transition-colors"
@@ -2416,7 +2520,7 @@ export default function ProjectsHub({
                       <button
                         type="button"
                         onClick={() => {
-                          setNewProjectForm({ ...newProjectForm, teamMembers: '' });
+                          setNewProjectForm(prev => ({ ...prev, teamMembers: '', teamMemberUids: [] }));
                           toast.success('Membros da equipe limpos');
                         }}
                         className="text-[10px] text-gray-500 hover:text-red-400 font-['Space_Mono'] underline cursor-pointer ml-1"
@@ -2843,9 +2947,27 @@ export default function ProjectsHub({
                     required
                     placeholder="Nome completo do líder"
                     value={editProjectForm.leader}
-                    onChange={e => setEditProjectForm({ ...editProjectForm, leader: e.target.value })}
+                    onChange={e => setEditProjectForm({ ...editProjectForm, leader: e.target.value, leaderUid: '' })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={editProjectForm.leaderUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setEditProjectForm(prev => ({
+                        ...prev,
+                        leaderUid: e.target.value,
+                        leader: member?.name || prev.leader
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta do líder para permissões do projeto"
+                  >
+                    <option value="">Associar conta do líder (necessário para permissões)</option>
+                    {registeredMembers.filter(item => typeof item.userId === 'string' && item.userId).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-gray-300 font-semibold mb-1 uppercase">Discord do Líder</label>
@@ -2856,6 +2978,28 @@ export default function ProjectsHub({
                     onChange={e => setEditProjectForm({ ...editProjectForm, leaderDiscord: e.target.value.replace(/^@/, '') })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={editProjectForm.responsibleDirectorUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setEditProjectForm(prev => ({
+                        ...prev,
+                        responsibleDirectorUid: e.target.value,
+                        responsibleDirector: member?.name || 'Diretoria de Projetos'
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta da diretoria responsável"
+                  >
+                    <option value="">Sem pessoa associada à diretoria</option>
+                    {registeredMembers.filter(item =>
+                      typeof item.userId === 'string' &&
+                      item.userId &&
+                      /diretoria|diretório/i.test(String(item.leagueRole || ''))
+                    ).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -2940,9 +3084,17 @@ export default function ProjectsHub({
                   placeholder="Ex: Maria (Líder), Lucas (Dev), Sofia (Arte)... ou clique no botão acima para abrir o filtro"
                   value={editProjectForm.teamMembers}
                   onFocus={() => { if (canEditGames && !isEditMemberFilterOpen) setIsEditMemberFilterOpen(true); }}
-                  onChange={e => setEditProjectForm({ ...editProjectForm, teamMembers: e.target.value })}
+                  onChange={e => {
+                    const teamMembers = e.target.value;
+                    setEditProjectForm(prev => ({
+                      ...prev,
+                      teamMembers,
+                      teamMemberUids: retainTeamMemberUids(teamMembers, prev.teamMemberUids)
+                    }));
+                  }}
                   className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                 />
+                <p className="mt-1 text-[10px] text-gray-500">Apenas membros adicionados pelo filtro de cadastro recebem permissões; texto digitado é só para exibição.</p>
 
                 {/* Chips of added members */}
                 {editProjectForm.teamMembers && (
@@ -2964,7 +3116,11 @@ export default function ProjectsHub({
                               .map(s => s.trim())
                               .filter(m => m !== memberName)
                               .join(', ');
-                            setEditProjectForm({ ...editProjectForm, teamMembers: updated });
+                            setEditProjectForm(prev => ({
+                              ...prev,
+                              teamMembers: updated,
+                              teamMemberUids: retainTeamMemberUids(updated, prev.teamMemberUids)
+                            }));
                             toast.success(`"${memberName}" removido(a) da equipe`);
                           }}
                           className="hover:text-red-400 cursor-pointer p-0.5 transition-colors"
@@ -2978,7 +3134,7 @@ export default function ProjectsHub({
                       <button
                         type="button"
                         onClick={() => {
-                          setEditProjectForm({ ...editProjectForm, teamMembers: '' });
+                          setEditProjectForm(prev => ({ ...prev, teamMembers: '', teamMemberUids: [] }));
                           toast.success('Membros da equipe limpos');
                         }}
                         className="text-[10px] text-gray-500 hover:text-red-400 font-['Space_Mono'] underline cursor-pointer ml-1"

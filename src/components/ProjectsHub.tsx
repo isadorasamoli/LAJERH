@@ -1098,6 +1098,9 @@ export default function ProjectsHub({
 
   return (
     <div id="projects-hub" className="w-full max-w-5xl mx-auto space-y-8 pb-16 animate-in fade-in duration-300 text-left">
+      {/* Com um projeto aberto, a página do projeto ocupa o lugar da lista. */}
+      {!selectedProject && (
+      <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-ink-faint)] pb-6">
         <div>
           <div className="flex items-center gap-3">
@@ -1851,6 +1854,9 @@ export default function ProjectsHub({
             </div>
           )}
         </div>
+      )}
+
+      </>
       )}
 
       {selectedProject && (

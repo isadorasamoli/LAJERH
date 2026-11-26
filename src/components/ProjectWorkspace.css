@@ -272,3 +272,82 @@
 .lp-link { color: var(--lp-green); text-decoration: underline; text-underline-offset: 4px; }
 .lp-pre { white-space: pre-line; }
 .lp-ficha { margin-top: 32px; }
+
+/* ------------------------------------------------------------------
+   Tema do site (aparência escolhida em 26/11): a página fica dentro do
+   portal, com o menu lateral, cantos retos e o verde esmeralda do site.
+   Para voltar ao visual original da 2.0, apague daqui até o fim.
+   ------------------------------------------------------------------ */
+.lp {
+  --lp-bg: #141414; --lp-card: rgba(255,255,255,.02); --lp-card-2: rgba(0,0,0,.2);
+  --lp-line: var(--color-ink-faint, rgba(242,242,242,.1)); --lp-line-2: #374151;
+  --lp-text: #f3f4f6; --lp-muted: #9ca3af; --lp-faint: #6b7280;
+  --lp-green: #34d399; --lp-green-ink: #030712; --lp-green-dim: rgba(16,185,129,.12); --lp-green-line: rgba(16,185,129,.4);
+  --lp-amber: #fcd34d; --lp-amber-dim: rgba(245,158,11,.1); --lp-amber-line: rgba(245,158,11,.4);
+  --lp-red: #f87171;
+}
+.lp-shell { background: transparent; }
+.lp-page { width: 100%; max-width: 64rem; padding: 0 0 64px; }
+
+/* cantos retos, como o resto do portal (avatares e pontos continuam redondos) */
+.lp-tile, .lp-chip, .lp-btn, .lp-ib, .lp select, .lp-field input, .lp-field textarea, .lp-tcard input,
+.lp-gdd, .lp-attn, .lp-hero, .lp-item, .lp-scope > div, .lp-gallery div, .lp-empty, .lp-start, .lp-option,
+.lp-person, .lp-callout, .lp-seg, .lp-seg button, .lp-col, .lp-tcard, .lp-ms, .lp-card, .lp-form,
+.lp-list, .lp-modal, .lp-link-input, .lp-bar, .lp-bar > i, .lp-tab .n { border-radius: 0; }
+
+/* cabeçalho com o emoji do jogo */
+.lp-crumb { margin-bottom: 20px; }
+.lp-head-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.lp-emoji { width: 56px; height: 56px; flex: none; display: grid; place-items: center; font-size: 30px; line-height: 1; border-radius: 8px; background: rgba(31,41,55,.8); border: 1px solid #374151; }
+.lp-title { font-size: 30px; line-height: 36px; overflow-wrap: anywhere; }
+.lp-role { margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--lp-faint); }
+.lp-facts { margin-top: 20px; }
+.lp-facts dt { font-size: 11px; color: var(--lp-faint); }
+
+/* botões e campos menores, como os do site */
+.lp-btn { height: 32px; padding: 0 12px; gap: 6px; font-size: 12px; line-height: 16px; font-weight: 500; background: #1f2937; border-color: #374151; color: #e5e7eb; }
+.lp-btn:hover { background: #374151; }
+.lp-btn.small { height: 30px; padding: 0 10px; font-size: 12px; }
+.lp-btn.primary { background: #10b981; border-color: #10b981; color: var(--lp-green-ink); font-weight: 700; }
+.lp-btn.primary:hover { background: #34d399; }
+.lp-btn.soft { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.4); color: #6ee7b7; }
+.lp-btn.soft:hover { background: rgba(16,185,129,.25); }
+.lp-btn.amber { background: rgba(245,158,11,.15); border-color: rgba(245,158,11,.4); color: var(--lp-amber); }
+.lp-btn.amber:hover { background: rgba(245,158,11,.25); }
+.lp-btn svg, .lp-row .lp-btn svg { width: 13px; height: 13px; }
+.lp-ib { width: 28px; height: 28px; border-color: #374151; background: transparent; }
+.lp select, .lp-field input, .lp-field textarea, .lp-tcard input { height: 36px; background: #0f0f11; border-color: var(--lp-line); font-size: 13px; }
+.lp select { background: #161619; font-size: 12px; color: #d1d5db; }
+.lp-chip { height: 22px; font-size: 11px; font-weight: 500; }
+
+/* abas e títulos */
+.lp-tabs { margin: 32px 0; }
+.lp-tab { font-size: 14px; }
+.lp-tab .n { background: #1f2937; color: #d1d5db; }
+.lp-h h3, .lp-sh h3, .lp-start h2 { font-size: 18px; line-height: 28px; }
+.lp-kicker, .lp-field label, .lp-field .lp-fl { text-transform: uppercase; letter-spacing: .04em; font-size: 11px; }
+.lp-hero p { font-size: 19px; line-height: 30px; }
+.lp-text { color: #d1d5db; }
+.lp-col { background: rgba(0,0,0,.3); }
+.lp-seg { background: rgba(0,0,0,.3); }
+.lp-seg button { font-size: 12px; font-weight: 700; }
+.lp-seg button[aria-selected="true"] { background: rgba(16,185,129,.2); color: #6ee7b7; }
+.lp-entry::before { background: #141414; }
+.lp-empty { border-color: #374151; }
+
+@media (max-width: 640px) {
+  .lp-page { padding: 0 0 48px; }
+  .lp-title { font-size: 24px; line-height: 32px; }
+  .lp-emoji { width: 48px; height: 48px; font-size: 26px; }
+}
+
+/* capa do projeto */
+.lp-cover { height: 220px; margin-bottom: 24px; border-radius: 0; }
+.lp-cover-actions { position: absolute; right: 12px; bottom: 12px; display: flex; gap: 8px; align-items: center; }
+.lp-cover-actions .lp-btn, .lp-cover-actions .lp-ib { background: rgba(10,10,12,.85); }
+.lp-cover.empty { height: 160px; border-radius: 0; border-color: #374151; background: radial-gradient(ellipse at 50% 0%, rgba(16,185,129,.10), transparent 70%), rgba(255,255,255,.02); }
+.lp-cover.empty:hover { border-color: rgba(16,185,129,.4); }
+.lp-cover.empty svg { color: #34d399; }
+.lp-cover label, .lp-cover-actions label { cursor: pointer; }
+.lp .is-busy { opacity: .6; pointer-events: none; }
+@media (max-width: 640px) { .lp-cover { height: 160px; } }

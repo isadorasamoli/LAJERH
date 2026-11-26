@@ -9,6 +9,7 @@ import {
 import { toast } from 'react-hot-toast';
 import { db, functions } from '../lib/firebase';
 import { parseGdd, ParsedGdd } from '../lib/gddParser';
+import { loadProjectCover, removeProjectCover, resizeCoverImage, saveProjectCover } from '../lib/projectCover';
 import {
   OpeningItem,
   ProjectDevlogItem,
@@ -197,6 +198,45 @@ export default function ProjectWorkspace({
   const [fileName, setFileName] = useState('');
   const [fileUrl, setFileUrl] = useState('');
   const [showCheckinForm, setShowCheckinForm] = useState(false);
+  const [cover, setCover] = useState('');
+  const [savingCover, setSavingCover] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setCover('');
+    if (project.id) {
+      loadProjectCover(project.id)
+        .then(image => { if (active) setCover(image); })
+        .catch(error => console.info('Capa do projeto não carregou:', error));
+    }
+    return () => { active = false; };
+  }, [project.id]);
+
+  const changeCover = async (file?: File) => {
+    if (!file || !project.id) return;
+    try {
+      setSavingCover(true);
+      const image = await resizeCoverImage(file);
+      await saveProjectCover(project.id, image, currentUserName || '');
+      setCover(image);
+      toast.success('Imagem do projeto atualizada.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível salvar a imagem.');
+    } finally {
+      setSavingCover(false);
+    }
+  };
+
+  const deleteCover = async () => {
+    if (!project.id) return;
+    try {
+      await removeProjectCover(project.id);
+      setCover('');
+      toast.success('Imagem removida.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível remover a imagem.');
+    }
+  };
   const visibleTabs = useMemo(
     () => tabs.filter(item => canManage || !['tasks', 'files'].includes(item.id)),
     [canManage]
@@ -510,20 +550,43 @@ export default function ProjectWorkspace({
   ];
 
   return (
-    <div className="lp-shell fixed inset-0 z-50 overflow-y-auto">
+    <div className="lp-shell">
       <div className="lp lp-page">
         <nav className="lp-crumb" aria-label="Caminho">
           <button onClick={onClose}><ArrowLeft size={14} /> Projetos &amp; Oportunidades</button>
           <span aria-hidden="true"> / </span>{project.name}
         </nav>
 
-        {canEditProject && <div className="lp-cover empty lp-cover-placeholder" aria-label="Capa do projeto">
-          <Image />
-          <span><b>Capa do projeto</b><small>O armazenamento de imagens ainda não está integrado.</small></span>
-        </div>}
+        {cover ? (
+          <div className="lp-cover">
+            <img src={cover} alt={`Imagem do jogo ${project.name}`} />
+            {canEditProject && <span className="lp-cover-actions">
+              <label className={`lp-btn small${savingCover ? ' is-busy' : ''}`}>
+                <Image />{savingCover ? 'Enviando…' : 'Trocar imagem'}
+                <input type="file" accept="image/*" hidden disabled={savingCover} onChange={event => { void changeCover(event.target.files?.[0]); event.target.value = ''; }} />
+              </label>
+              <ConfirmDelete label="Remover imagem do projeto" onConfirm={() => void deleteCover()} />
+            </span>}
+          </div>
+        ) : canEditProject && (
+          <label className={`lp-cover empty${savingCover ? ' is-busy' : ''}`}>
+            <Image />
+            <span>
+              <b>{savingCover ? 'Enviando a imagem…' : 'Adicionar imagem do projeto'}</b>
+              <small>Uma capa, arte ou print do jogo. Aparece no topo desta página. Fica melhor na horizontal, como 1600 × 500 px.</small>
+            </span>
+            <input type="file" accept="image/*" hidden disabled={savingCover} onChange={event => { void changeCover(event.target.files?.[0]); event.target.value = ''; }} />
+          </label>
+        )}
 
         <header className="lp-head">
-          <h1 className="lp-title">{project.name}</h1>
+          <div className="lp-head-main">
+            <span className="lp-emoji" aria-hidden="true">{project.coverEmoji || '🎮'}</span>
+            <div>
+              <h1 className="lp-title">{project.name}</h1>
+              <p className="lp-role">{canEditProject ? 'Você pode editar este projeto' : canManage ? 'Você está no time deste projeto' : 'Você vê como membro da liga'}</p>
+            </div>
+          </div>
           {canEditProject ? (
             <select className="lp-btn" aria-label="Status do projeto" value={project.status} onChange={event => void updateStatus(event.target.value)}>
               {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}

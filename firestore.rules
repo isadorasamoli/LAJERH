@@ -353,6 +353,25 @@ service cloud.firestore {
       );
     }
 
+    // Capa do projeto: imagem reduzida no navegador, guardada como data URL.
+    // Todo membro vê; só admin, líder ou diretoria responsável trocam.
+    match /projectCovers/{projectId} {
+      allow read: if isSignedIn();
+      allow create, update: if (isAdmin() || (
+          exists(/databases/$(database)/documents/projects/$(projectId)) &&
+          isProjectOwner(get(/databases/$(database)/documents/projects/$(projectId)).data)
+        ))
+        && incoming().keys().hasOnly(['image', 'updatedAt', 'updatedBy'])
+        && incoming().image is string
+        && incoming().image.size() <= 750000
+        && incoming().updatedAt is number
+        && incoming().updatedBy is string && incoming().updatedBy.size() <= 255;
+      allow delete: if isAdmin() || (
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        isProjectOwner(get(/databases/$(database)/documents/projects/$(projectId)).data)
+      );
+    }
+
     match /projects/{projectId} {
       allow read: if isSignedIn();
       allow create: if isRHorSuperAdmin()

@@ -22,6 +22,8 @@ interface ProjectWorkspaceProps {
   project: ProjectItem;
   openings: OpeningItem[];
   tasks: TaskItem[];
+  /** Nome de quem está usando a página. Vai como autor do check-in. */
+  currentUserName?: string;
   canManage: boolean;
   canEditProject: boolean;
   onClose: () => void;
@@ -99,6 +101,54 @@ const relativeDate = (value?: string) => {
   return `há ${days} dias`;
 };
 
+/**
+ * "Ana (Programação), Bia (Arte), Ana (Game Design)" vira
+ * [{ Ana, [Programação, Game Design] }, { Bia, [Arte] }]. O líder entra primeiro e não se repete.
+ */
+const parseTeam = (teamMembers?: string, leader?: string) => {
+  const out: Array<{ name: string; roles: string[] }> = [];
+  const add = (raw: string) => {
+    const match = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(raw.trim());
+    const name = (match ? match[1] : raw).trim();
+    if (!name) return;
+    const roles = match ? match[2].split(/[/,]/).map(role => role.trim()).filter(Boolean) : [];
+    const found = out.find(person => person.name.toLowerCase() === name.toLowerCase());
+    if (found) roles.forEach(role => { if (!found.roles.includes(role)) found.roles.push(role); });
+    else out.push({ name, roles });
+  };
+  if (leader) add(leader);
+  (teamMembers || '').split(/[,;\n]/).forEach(add);
+  return out;
+};
+
+/** Link "fazer uma cópia" do Google Docs. Funciona sem as Cloud Functions. */
+const templateCopyUrl = (kind: 'gdd' | 'script') => {
+  const id = kind === 'gdd' ? import.meta.env.VITE_GDD_TEMPLATE_COMPLETO : import.meta.env.VITE_DOC_TEMPLATE_ROTEIRO;
+  return id ? `https://docs.google.com/document/d/${id}/copy` : '';
+};
+
+/**
+ * Lixeira com confirmação na própria página. Não usa window.confirm, que alguns
+ * navegadores embutidos fecham sozinhos. Volta ao normal depois de 5 segundos.
+ */
+function ConfirmDelete({ label, onConfirm }: { label: string; onConfirm: () => void }) {
+  const [asking, setAsking] = useState(false);
+  useEffect(() => {
+    if (!asking) return;
+    const timer = window.setTimeout(() => setAsking(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [asking]);
+  if (!asking) {
+    return <button className="lp-ib" onClick={() => setAsking(true)} aria-label={label} title={label}><Trash2 /></button>;
+  }
+  return (
+    <span className="lp-row" role="group" aria-label={label}>
+      <button autoFocus className="lp-btn small lp-btn-danger" onClick={() => { setAsking(false); onConfirm(); }}>Excluir</button>
+      <button className="lp-btn small" onClick={() => setAsking(false)}>Não</button>
+    </span>
+  );
+}
+
 const taskBoardStatus = (task: TaskItem): BoardStatus => task.boardStatus
   || (task.status === 'pegaram' ? 'doing' : task.status === 'entregue' ? 'done' : 'todo');
 
@@ -108,6 +158,7 @@ export default function ProjectWorkspace({
   project,
   openings,
   tasks,
+  currentUserName,
   canManage,
   canEditProject,
   onClose,
@@ -154,8 +205,8 @@ export default function ProjectWorkspace({
   const projectOpenings = openings.filter(item => item.projectId === project.id && item.status === 'aberta');
   const projectTasks = tasks.filter(item => item.projectId === project.id && item.status !== 'cancelada');
   const teamMembers = useMemo(
-    () => (project.teamMembers || '').split(',').map(item => item.trim()).filter(Boolean),
-    [project.teamMembers]
+    () => parseTeam(project.teamMembers, project.leader),
+    [project.teamMembers, project.leader]
   );
   const parsedGdd: ParsedGdd | null = useMemo(
     () => gddMarkdown ? parseGdd(gddMarkdown) : null,
@@ -327,7 +378,7 @@ export default function ProjectWorkspace({
     const item: ProjectDevlogItem = {
       id: crypto.randomUUID(),
       date: new Date().toISOString().slice(0, 10),
-      author: project.leader || 'Equipe do projeto',
+      author: currentUserName || project.leader || 'Equipe do projeto',
       title: devlogTitle.trim(),
       summary: devlogSummary.trim(),
       nextSteps: devlogNext.trim(),
@@ -542,7 +593,7 @@ export default function ProjectWorkspace({
         </div>
 
         <main role="tabpanel">
-          {tab === 'overview' && (
+          {tab === 'overview' && <>{(
             !project.gddUrl ? (
               canEditProject ? (
                 <section className="lp-start">
@@ -555,6 +606,9 @@ export default function ProjectWorkspace({
                       <button className="lp-btn primary" onClick={() => void createGoogleDocument('gdd')} disabled={creatingDocument !== null}>
                         <FileText />{creatingDocument === 'gdd' ? 'Criando...' : 'Criar documento'}
                       </button>
+                      {templateCopyUrl('gdd') && <p className="lp-note">
+                        Se não funcionar, <a className="lp-link" href={templateCopyUrl('gdd')} target="_blank" rel="noreferrer">faça uma cópia do modelo no seu Drive</a>, compartilhe com o time e cole o link ao lado.
+                      </p>}
                     </div>
                     <form className="lp-option" onSubmit={event => { event.preventDefault(); void saveLinks(); }}>
                       <h3>Já tenho um documento</h3>
@@ -593,12 +647,26 @@ export default function ProjectWorkspace({
               </div>
             )
           )}
+          {/* Enquanto o GDD não puder ser lido, mostra o que já está na ficha do projeto. */}
+          {!overview && !loadingGdd && (project.elevatorPitch || project.diferencial || project.pilares || project.description) && (
+            <div className="lp-stack lp-ficha">
+              <p className="lp-muted">Da ficha do projeto:</p>
+              {(project.elevatorPitch || project.description) && <section className="lp-hero c-green"><span className="lp-tile big"><Gamepad2 /></span><div><div className="lp-kicker">O jogo em um parágrafo</div><p>{project.elevatorPitch || project.description}</p></div></section>}
+              {project.diferencial && <section className="lp-sec c-amber"><div className="lp-sh"><span className="lp-tile"><Sparkles /></span><div><h3>O diferencial</h3></div></div><p className="lp-text">{project.diferencial}</p></section>}
+              {project.pilares && <section className="lp-sec c-purple"><div className="lp-sh"><span className="lp-tile"><CheckCircle2 /></span><div><h3>Pilares de design</h3></div></div><p className="lp-text lp-pre">{project.pilares}</p></section>}
+              {project.targetScope && <section className="lp-sec c-coral"><div className="lp-sh"><span className="lp-tile"><Flag /></span><div><h3>Escopo</h3></div></div><p className="lp-text">{project.targetScope}</p></section>}
+            </div>
+          )}
+          </>}
 
           {tab === 'team' && (
             <section>
               <div className="lp-h"><div><h3>Equipe atual</h3><p>Pessoas que fazem parte do projeto.</p></div></div>
               {teamMembers.length ? <div className="lp-people">{teamMembers.map(member => (
-                <article key={member} className="lp-person"><div className="lp-avatar">{initials(member)}</div><div><b>{member}</b><div className="lp-roles"><span className="lp-chip">Equipe do projeto</span></div></div></article>
+                <article key={member.name} className="lp-person"><div className="lp-avatar">{initials(member.name)}</div><div><b>{member.name}</b><div className="lp-roles">
+                  {member.name.toLowerCase() === (project.leader || '').trim().toLowerCase() && <span className="lp-chip green">Líder</span>}
+                  {member.roles.length ? member.roles.map(role => <span key={role} className="lp-chip">{role}</span>) : <span className="lp-chip">Equipe do projeto</span>}
+                </div></div></article>
               ))}</div> : <div className="lp-empty"><span>Nenhum membro cadastrado na equipe deste projeto.</span></div>}
             </section>
           )}
@@ -736,7 +804,7 @@ export default function ProjectWorkspace({
                   <time dateTime={item.date}>{formatDate(item.date)} · {item.author}</time>
                   <h4>{item.title}</h4><p>{item.summary}</p>
                   {(item.blockers || item.nextSteps) && <div className="more">{item.blockers && <>Travou: {item.blockers} </>}{item.nextSteps && <>Próximos passos: {item.nextSteps}</>}</div>}
-                  {canManage && <button className="lp-ib lp-entry-delete" onClick={() => void removeDevlog(item.id)} aria-label="Excluir registro"><Trash2 /></button>}
+                  {canManage && <span className="lp-entry-delete"><ConfirmDelete label="Excluir registro" onConfirm={() => void removeDevlog(item.id)} /></span>}
                 </article>
               ))}</div> : <div className="lp-empty"><span>Nenhum registro ainda.</span></div>}
             </>
@@ -745,7 +813,10 @@ export default function ProjectWorkspace({
           {tab === 'files' && (
             <>
               <div className="lp-h"><div><h3>Documentos</h3><p>O GDD é lido pelo site. Os outros documentos ficam aqui como referência.</p></div>
-                {canEditProject && <button className="lp-btn small" onClick={() => void createGoogleDocument('script')} disabled={creatingDocument !== null}><Plus />{creatingDocument === 'script' ? 'Criando...' : 'Criar roteiro'}</button>}
+                {canEditProject && <span className="lp-row">
+                  <button className="lp-btn small" onClick={() => void createGoogleDocument('script')} disabled={creatingDocument !== null}><Plus />{creatingDocument === 'script' ? 'Criando...' : 'Criar roteiro'}</button>
+                  {templateCopyUrl('script') && <a className="lp-btn small" href={templateCopyUrl('script')} target="_blank" rel="noreferrer"><ExternalLink />Copiar modelo de roteiro</a>}
+                </span>}
               </div>
               <div className="lp-list">{documentRows.map((item, index) => {
                 const url = safeExternalUrl(item.url || '');
@@ -768,7 +839,7 @@ export default function ProjectWorkspace({
                 return <div className="lp-frow" key={item.id}>
                   <div><b>{item.name}</b><small>{item.type || 'Arquivo do projeto'}</small></div>
                   <div className="lp-row">{url ? <a className="lp-btn small" href={url} target="_blank" rel="noreferrer"><ExternalLink />Abrir</a> : <span className="lp-muted">Link inválido</span>}
-                    {canEditProject && <button className="lp-ib" onClick={() => void removeFile(item.id)} aria-label={`Remover ${item.name}`}><Trash2 /></button>}
+                    {canEditProject && <ConfirmDelete label={`Remover ${item.name}`} onConfirm={() => void removeFile(item.id)} />}
                   </div>
                 </div>;
               })}</div>}

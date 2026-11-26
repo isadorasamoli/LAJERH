@@ -265,3 +265,10 @@
   .lp-frow > .lp-row { width: 100%; }
   .lp-task-form { padding: 16px; }
 }
+
+/* lixeira com confirmação, link de cópia do modelo e ficha do projeto */
+.lp-btn.lp-btn-danger { background: rgba(240,88,91,.15); border-color: rgba(240,88,91,.5); color: var(--lp-red); }
+.lp-btn.lp-btn-danger:hover { background: rgba(240,88,91,.25); }
+.lp-link { color: var(--lp-green); text-decoration: underline; text-underline-offset: 4px; }
+.lp-pre { white-space: pre-line; }
+.lp-ficha { margin-top: 32px; }

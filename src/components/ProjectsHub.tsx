@@ -1858,6 +1858,7 @@ export default function ProjectsHub({
           project={selectedProject}
           openings={openings}
           tasks={tasks}
+          currentUserName={currentUserName || auth.currentUser?.displayName || activeEmail.split('@')[0]}
           canManage={Boolean(
             canEditGames ||
             selectedProject.leaderUid === auth.currentUser?.uid ||

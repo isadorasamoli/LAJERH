@@ -9,11 +9,12 @@ export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId)
 export const auth = getAuth(app);
 export const functions = getFunctions(app, import.meta.env.VITE_LAJE_FUNCTIONS_REGION || 'us-central1');
 
+// Só login básico (nome e e-mail). A permissão gmail.send fazia o Google bloquear o login
+// ("Acesso bloqueado"), porque o app não passou pela verificação do Google para esse escopo.
+// Sem ela, os envios automáticos de e-mail falham em silêncio e os avisos manuais abrem o
+// Gmail com a mensagem pronta. Para voltar a enviar sozinho, verifique o app no Google Cloud
+// Console antes de recolocar: provider.addScope('https://www.googleapis.com/auth/gmail.send').
 export const provider = new GoogleAuthProvider();
-provider.addScope('https://www.googleapis.com/auth/gmail.send');
-provider.setCustomParameters({
-  prompt: 'select_account consent',
-});
 
 export enum OperationType {
   CREATE = 'create',

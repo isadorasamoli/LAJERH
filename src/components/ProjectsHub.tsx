@@ -423,7 +423,27 @@ export default function ProjectsHub({
           setProposals([]);
         }
       } else {
-        setProposals([]);
+        // Membros veem as próprias propostas, com a decisão e o retorno da diretoria.
+        try {
+          const myEmail = auth.currentUser?.email || '';
+          if (myEmail) {
+            const mine = await getDocs(query(collection(db, 'proposals'), where('proposerEmail', '==', myEmail)));
+            setProposals(mine.docs.map(d => ({ id: d.id, ...d.data() } as ProposalItem)).sort((a, b) => b.createdAt - a.createdAt));
+          } else {
+            setProposals([]);
+          }
+        } catch (proposalError) {
+          console.info('Propostas do membro não carregaram:', proposalError);
+          setProposals([]);
+        }
+      }
+
+      // Abrir um projeto vindo de outra página (ex.: aviso de aprovação no Meu painel).
+      const openId = sessionStorage.getItem('laje_open_project');
+      if (openId) {
+        sessionStorage.removeItem('laje_open_project');
+        const target = projSnap.docs.find(d => d.id === openId);
+        if (target) setSelectedProject({ id: target.id, ...target.data() } as ProjectItem);
       }
     } catch (err) {
       console.error('Error fetching projects hub data:', err);
@@ -1011,6 +1031,77 @@ export default function ProjectsHub({
     } finally {
       setIsEvaluating(false);
     }
+  };
+
+  /**
+   * Proposta aprovada vira projeto: copia o que a pessoa escreveu, coloca quem propôs como líder
+   * (com a conta associada, então já pode editar a página) e liga a proposta ao projeto.
+   */
+  const [creatingFromProposal, setCreatingFromProposal] = useState<string | null>(null);
+  const handleCreateProjectFromProposal = async (prop: ProposalItem) => {
+    if (!prop.id || prop.projectId) return;
+    try {
+      setCreatingFromProposal(prop.id);
+      // Gênero: o começo de "Gênero e referências", até a primeira vírgula, ponto ou travessão.
+      const genre = (prop.genreAndReferences || '').split(/[,.;\n–—]| - /)[0].trim().slice(0, 80) || 'Gênero indefinido';
+      const reducedScope = prop.status === 'aprovado com escopo menor';
+      const description = [
+        prop.oneSentencePitch,
+        prop.genreAndReferences ? `Gênero e referências: ${prop.genreAndReferences}` : '',
+        prop.teamAndNeeds ? `Equipe e necessidades: ${prop.teamAndNeeds}` : '',
+        prop.visualAttachmentsUrl ? `Material visual: ${prop.visualAttachmentsUrl}` : '',
+      ].filter(Boolean).join('\n\n');
+      const newProject: Omit<ProjectItem, 'id'> = {
+        name: prop.projectTitle.trim().slice(0, 255),
+        status: reducedScope ? 'aprovado com escopo menor' : 'aprovado',
+        engine: (prop.engine || 'A definir').slice(0, 100),
+        genre,
+        leader: prop.proposerName.trim().slice(0, 255),
+        leaderDiscord: prop.proposerDiscord || '',
+        ...(prop.proposerUid ? { leaderUid: prop.proposerUid } : {}),
+        responsibleDirector: 'Diretoria de Projetos',
+        semester: '2026.2',
+        description: description.slice(0, 4000),
+        elevatorPitch: prop.oneSentencePitch,
+        diferencial: prop.differentiation || '',
+        targetScope: [
+          reducedScope ? 'ESCOPO REDUZIDO PELA DIRETORIA. Ajustar antes de começar.' : '',
+          prop.projectScopeAndDeadline,
+          prop.boardFeedback ? `Retorno da diretoria: ${prop.boardFeedback}` : '',
+        ].filter(Boolean).join('\n'),
+        teamMembers: prop.proposerName.trim(),
+        ...(prop.proposerUid ? { teamMemberUids: [prop.proposerUid] } : {}),
+        coverEmoji: '🎮',
+        createdAt: Date.now(),
+      };
+      const ref = await addDoc(collection(db, 'projects'), newProject);
+      await updateDoc(doc(db, 'proposals', prop.id), { projectId: ref.id });
+      const created: ProjectItem = { id: ref.id, ...newProject };
+      setProjects(prev => [created, ...prev]);
+      setProposals(prev => prev.map(p => p.id === prop.id ? { ...p, projectId: ref.id } : p));
+      await logAuditAction({
+        action: 'Criação de Jogo',
+        targetMemberName: newProject.name,
+        details: `Projeto "${newProject.name}" criado a partir da proposta de ${prop.proposerName}`,
+        performedByEmail: activeEmail,
+        performedByName: currentUserName || 'Diretoria',
+      }).catch(() => undefined);
+      toast.success(prop.proposerUid
+        ? 'Projeto criado. Quem propôs já é líder e pode editar a página.'
+        : 'Projeto criado. Associe a conta do líder em "Editar", porque a proposta não guardou a conta de quem propôs.');
+      setSelectedProject(created);
+    } catch (err) {
+      console.error(err);
+      toast.error('Não foi possível criar o projeto a partir da proposta.');
+    } finally {
+      setCreatingFromProposal(null);
+    }
+  };
+
+  const openProjectById = (projectId?: string) => {
+    const target = projects.find(p => p.id === projectId);
+    if (target) setSelectedProject(target);
+    else toast.error('Projeto não encontrado. Ele pode ter sido apagado.');
   };
 
   const handleSaveCheckIn = async () => {
@@ -1844,7 +1935,7 @@ export default function ProjectsHub({
           {proposals.length > 0 && (
             <div className="p-6 bg-[rgba(255,255,255,0.02)] border border-[var(--color-ink-faint)] space-y-4">
               <h4 className="text-sm font-bold text-white font-['Syne'] uppercase">
-                Propostas em Avaliação pela Diretoria ({proposals.length})
+                {canEditGames ? 'Propostas em Avaliação pela Diretoria' : 'Suas propostas'} ({proposals.length})
               </h4>
               <div className="divide-y divide-gray-800">
                 {proposals.map(prop => (
@@ -1863,14 +1954,33 @@ export default function ProjectsHub({
                         </p>
                       )}
                     </div>
-                    {isAdmin && (
-                      <button
-                        onClick={() => setSelectedProposal(prop)}
-                        className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-['Space_Mono'] border border-gray-700 transition-colors shrink-0 cursor-pointer"
-                      >
-                        Avaliar Proposta
-                      </button>
-                    )}
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      {prop.projectId ? (
+                        <button
+                          onClick={() => openProjectById(prop.projectId)}
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold text-xs font-['Space_Mono'] transition-colors cursor-pointer"
+                        >
+                          Abrir página do projeto
+                        </button>
+                      ) : canEditGames && ['aprovado', 'aprovado com escopo menor'].includes(prop.status) && (
+                        <button
+                          onClick={() => void handleCreateProjectFromProposal(prop)}
+                          disabled={creatingFromProposal === prop.id}
+                          className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold text-xs font-['Space_Mono'] transition-colors cursor-pointer disabled:opacity-60"
+                          title="Cria o projeto com os dados da proposta e coloca quem propôs como líder"
+                        >
+                          {creatingFromProposal === prop.id ? 'Criando…' : 'Criar projeto a partir da proposta'}
+                        </button>
+                      )}
+                      {isAdmin && (
+                        <button
+                          onClick={() => setSelectedProposal(prop)}
+                          className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-['Space_Mono'] border border-gray-700 transition-colors cursor-pointer"
+                        >
+                          Avaliar Proposta
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

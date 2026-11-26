@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { User } from 'firebase/auth';
-import { AlertTriangle, ArrowRight, Briefcase, CalendarDays, CheckCircle2, Gamepad2, Home, Kanban } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Briefcase, CalendarDays, CheckCircle2, Gamepad2, Home, Kanban, MessageSquareText, PartyPopper } from 'lucide-react';
 import type { TabType } from '../App';
-import type { OpeningItem, ProjectItem, TaskItem } from '../lib/projects';
+import type { OpeningItem, ProjectItem, ProposalItem, TaskItem } from '../lib/projects';
 import {
   CalendarEvent, MemberProfile, daysSince, fmtDate, isDone, isInProject, isMine,
-  loadEvents, loadMyProfile, loadOpenings, loadProjects, loadTasks, norm,
+  loadEvents, loadMyProfile, loadMyProposals, loadOpenings, loadProjects, loadTasks, norm,
 } from '../lib/portal';
 import { Empty, Loading, PageHeader, SectionTitle, Stat, btn, chip, chipColor, mono, panel } from './PortalUI';
 
@@ -33,18 +33,28 @@ export default function HomePanel({ user, isAdmin, onNavigate }: { user: User; i
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [openings, setOpenings] = useState<OpeningItem[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [proposals, setProposals] = useState<ProposalItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([loadMyProfile(user), loadProjects(), loadTasks(), loadOpenings(), loadEvents()]).then(([p, pr, t, o, e]) => {
+    Promise.allSettled([loadMyProfile(user), loadProjects(), loadTasks(), loadOpenings(), loadEvents(), loadMyProposals(user)]).then(([p, pr, t, o, e, pp]) => {
       if (p.status === 'fulfilled') setProfile(p.value);
       if (pr.status === 'fulfilled') setProjects(pr.value);
       if (t.status === 'fulfilled') setTasks(t.value);
       if (o.status === 'fulfilled') setOpenings(o.value);
       if (e.status === 'fulfilled') setEvents(e.value);
+      if (pp.status === 'fulfilled') setProposals(pp.value);
       setLoading(false);
     });
   }, [user]);
+
+  const openProject = (projectId?: string) => {
+    if (projectId) sessionStorage.setItem('laje_open_project', projectId);
+    onNavigate('projects');
+  };
+  // Propostas respondidas nos últimos 60 dias, ou aprovadas ainda sem projeto criado.
+  const proposalNews = proposals.filter(p => p.respondedAt && p.status !== 'recebido'
+    && ((daysSince(p.respondedAt) ?? 999) <= 60 || (p.status.startsWith('aprovado') && !p.projectId)));
 
   const name = profile?.name || user.displayName || user.email?.split('@')[0] || 'membro';
   const myProjects = useMemo(() => projects.filter(p => isInProject(p, user, profile?.name)), [projects, user, profile]);
@@ -84,6 +94,32 @@ export default function HomePanel({ user, isAdmin, onNavigate }: { user: User; i
           <button className={btn.amber} onClick={() => onNavigate('form')}>Preencher agora <ArrowRight size={13} /></button>
         </div>
       )}
+
+      {proposalNews.map(p => {
+        const approved = p.status === 'aprovado' || p.status === 'aprovado com escopo menor';
+        const tone = approved ? 'border-emerald-500/40 bg-emerald-500/10' : p.status === 'não aprovado' ? 'border-gray-700 bg-[rgba(255,255,255,0.02)]' : 'border-amber-500/40 bg-amber-500/10';
+        return (
+          <div key={p.id} className={`mb-6 p-4 border ${tone} flex flex-wrap items-center justify-between gap-3`}>
+            <div className="flex items-start gap-3 min-w-0">
+              {approved ? <PartyPopper size={20} className="text-emerald-400 shrink-0 mt-0.5" /> : <MessageSquareText size={20} className="text-amber-300 shrink-0 mt-0.5" />}
+              <div className="min-w-0">
+                <div className="font-bold text-white">
+                  {approved ? `Sua proposta "${p.projectTitle}" foi aprovada!` : `A diretoria respondeu sua proposta "${p.projectTitle}"`}
+                </div>
+                <div className="text-sm text-gray-300">
+                  {p.status === 'aprovado com escopo menor' ? 'Aprovada com escopo menor. ' : !approved ? `Decisão: ${p.status}. ` : ''}
+                  {approved && !p.projectId ? 'A diretoria vai criar a página do projeto em breve.' : ''}
+                  {approved && p.projectId ? 'A página do projeto já existe e você é o líder.' : ''}
+                </div>
+                {p.boardFeedback && <div className="text-xs text-gray-400 mt-1">Retorno da diretoria: {p.boardFeedback}</div>}
+              </div>
+            </div>
+            {approved && p.projectId
+              ? <button className={btn.primary} onClick={() => openProject(p.projectId)}>Abrir página do projeto <ArrowRight size={13} /></button>
+              : <button className={btn.ghost} onClick={() => onNavigate('projects')}>Ver proposta</button>}
+          </div>
+        );
+      })}
 
       {leaderWarnings.length > 0 && (
         <div role="status" className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-2 border border-amber-500/40 bg-amber-500/10 text-sm">

@@ -121,6 +121,8 @@ export interface ProposalItem {
   status: 'recebido' | 'em análise' | 'aprovado' | 'aprovado com escopo menor' | 'precisa de ajustes' | 'não aprovado';
   boardFeedback?: string;
   respondedAt?: number;
+  /** Projeto criado a partir desta proposta, depois de aprovada. */
+  projectId?: string;
   createdAt: number;
 }
 

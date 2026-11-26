@@ -5,7 +5,7 @@
 import { User } from 'firebase/auth';
 import { collection, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { db } from './firebase';
-import type { OpeningItem, ProjectItem, TaskItem } from './projects';
+import type { OpeningItem, ProjectItem, ProposalItem, TaskItem } from './projects';
 
 export interface MemberProfile {
   name: string;
@@ -77,6 +77,13 @@ export async function loadTasks(): Promise<TaskItem[]> {
 export async function loadOpenings(): Promise<OpeningItem[]> {
   const snap = await getDocs(query(collection(db, 'openings'), orderBy('openedAt', 'desc')));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as OpeningItem) }));
+}
+
+/** Propostas de jogo da pessoa logada (a regra só deixa ler as próprias). */
+export async function loadMyProposals(user: User): Promise<ProposalItem[]> {
+  if (!user.email) return [];
+  const snap = await getDocs(query(collection(db, 'proposals'), where('proposerEmail', '==', user.email)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as ProposalItem) })).sort((a, b) => b.createdAt - a.createdAt);
 }
 
 export async function loadEvents(): Promise<CalendarEvent[]> {

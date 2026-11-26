@@ -168,6 +168,7 @@ export default function Form({ user, token }: FormProps) {
           const snapEmail = await getDocs(qEmail);
           if (!snapEmail.empty) {
             foundDoc = { id: snapEmail.docs[0].id, ...snapEmail.docs[0].data() };
+            // Passa o cadastro para a conta da própria pessoa; a partir daí o userId fica certo.
             await updateDoc(doc(db, 'responses', foundDoc.id), { userId: user.uid });
           }
         }
@@ -294,11 +295,17 @@ export default function Form({ user, token }: FormProps) {
           }
           targetDoc = found;
         } else {
-          // Checar também pelo UID do usuário
+          // Checar também pelo UID do usuário. Só vale um cadastro sem e-mail ou com o mesmo e-mail:
+          // cadastros feitos pela diretoria pelo painel ficam com o userId de quem cadastrou,
+          // e sem essa conferência o formulário sobrescreveria o cadastro de outro membro.
           const uidCheckQ = query(collection(db, 'responses'), where('userId', '==', user.uid));
           const uidCheckSnap = await getDocs(uidCheckQ);
-          if (!uidCheckSnap.empty) {
-            targetDoc = { id: uidCheckSnap.docs[0].id, ...uidCheckSnap.docs[0].data() };
+          const ownByUid = uidCheckSnap.docs.find(d => {
+            const responseEmail = String(d.data().email || '').toLowerCase().trim();
+            return !responseEmail || responseEmail === targetEmail;
+          });
+          if (ownByUid) {
+            targetDoc = { id: ownByUid.id, ...ownByUid.data() };
           }
         }
       } else if (existingResponse && !isSuperAdmin && !existingResponse.editAuthorized) {

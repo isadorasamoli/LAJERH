@@ -98,10 +98,16 @@ export default function ProjectsHub({
       try {
         const user = auth.currentUser;
         if (user) {
+          // Só o cadastro da própria pessoa: cadastros feitos pela diretoria ficam com o userId
+          // de quem cadastrou, então o e-mail precisa bater (ou estar vazio).
           const q1 = query(collection(db, 'responses'), where('userId', '==', user.uid));
           const snap1 = await getDocs(q1);
-          if (!snap1.empty) {
-            const r = (snap1.docs[0].data().leagueRole || '').toLowerCase();
+          const own = snap1.docs.find(d => {
+            const responseEmail = String(d.data().email || '').toLowerCase().trim();
+            return !responseEmail || responseEmail === activeEmail;
+          });
+          if (own) {
+            const r = (own.data().leagueRole || '').toLowerCase();
             if (r.includes('rh') || r.includes('recursos humanos')) {
               setIsRHMember(true);
               return;

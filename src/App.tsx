@@ -23,6 +23,7 @@ import ResourceLibrary from './components/ResourceLibrary';
 import PublicShowcase from './components/PublicShowcase';
 import PlaytestFeedbackForm from './components/PlaytestFeedbackForm';
 import AttendanceCheckin from './components/AttendanceCheckin';
+import { loadMyProfile } from './lib/portal';
 import { toast } from 'react-hot-toast';
 
 export type TabType = 'home' | 'form' | 'projects' | 'informal' | 'calendar' | 'jams' | 'resources' | 'portfolio' | 'doubts'
@@ -152,22 +153,9 @@ export default function App() {
         }
         setIsAdmin(adminStatus);
 
-        let role = '';
-        const respQ = query(collection(db, 'responses'), where('userId', '==', currentUser.uid));
-        const respSnap = await getDocs(respQ);
-        if (!respSnap.empty) {
-          role = respSnap.docs[0].data().leagueRole || '';
-        } else if (currentUser.email) {
-          const emailQ = query(collection(db, 'responses'), where('email', '==', currentUser.email));
-          const emailSnap = await getDocs(emailQ);
-          if (!emailSnap.empty) {
-            role = emailSnap.docs[0].data().leagueRole || '';
-          } else if (isSuperAdminEmail) {
-            role = 'RH';
-          }
-        } else if (isSuperAdminEmail) {
-          role = 'RH';
-        }
+        // Cargo vem do cadastro da própria pessoa (busca pelo e-mail; ver loadMyProfile).
+        const myProfile = await loadMyProfile(currentUser);
+        const role = myProfile?.leagueRole || (isSuperAdminEmail ? 'RH' : '');
         setUserLeagueRole(role);
         const isRH = role.toLowerCase().includes('rh') || role.toLowerCase().includes('recursos humanos') || role.toLowerCase().includes('diretório') || role.toLowerCase().includes('diretoria') || isSuperAdminEmail;
         if (isRH) {
@@ -316,18 +304,9 @@ export default function App() {
         }
         setIsAdmin(adminStatus);
 
-        let role = '';
-        const respQ = query(collection(db, 'responses'), where('userId', '==', result.user.uid));
-        const respSnap = await getDocs(respQ);
-        if (!respSnap.empty) {
-          role = respSnap.docs[0].data().leagueRole || '';
-        } else if (result.user.email) {
-          const emailQ = query(collection(db, 'responses'), where('email', '==', result.user.email));
-          const emailSnap = await getDocs(emailQ);
-          if (!emailSnap.empty) {
-            role = emailSnap.docs[0].data().leagueRole || '';
-          }
-        }
+        // Cargo vem do cadastro da própria pessoa (busca pelo e-mail; ver loadMyProfile).
+        const myProfile = await loadMyProfile(result.user);
+        const role = myProfile?.leagueRole || '';
         setUserLeagueRole(role);
         const isRH = role.toLowerCase().includes('rh') || role.toLowerCase().includes('recursos humanos') || role.toLowerCase().includes('diretório') || role.toLowerCase().includes('diretoria') || isSuperAdminEmail;
         if (isRH) {

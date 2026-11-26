@@ -53,6 +53,7 @@ import {
   Edit2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import ProjectPage from './ProjectPage';
 
 interface ProjectsHubProps {
   isAdmin?: boolean;
@@ -1055,6 +1056,8 @@ export default function ProjectsHub({
 
   return (
     <div id="projects-hub" className="w-full max-w-5xl mx-auto space-y-8 pb-16 animate-in fade-in duration-300 text-left">
+      {!selectedProject && (
+      <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-ink-faint)] pb-6">
         <div>
           <div className="flex items-center gap-3">
@@ -1810,207 +1813,37 @@ export default function ProjectsHub({
         </div>
       )}
 
-      {/* MODAL: PROJECT DETAILS (GDD DE 1 PÁGINA) */}
+      </>
+      )}
+
       {selectedProject && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
-          onClick={() => setSelectedProject(null)}
-        >
-          <div 
-            className="bg-[#141416] border border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-gray-800 mb-6">
-              <div className="flex items-center gap-3">
-                <span className="text-3xl">{selectedProject.coverEmoji || '🎮'}</span>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="text-xl font-bold text-white font-['Syne']">{selectedProject.name}</h3>
-                    {getStatusBadge(selectedProject.status)}
-                  </div>
-                  <p className="text-xs text-amber-400 font-['Space_Mono'] mt-0.5">
-                    {selectedProject.genre} • {selectedProject.engine} • Semestre {selectedProject.semester}
-                  </p>
-                  {canEditGames && selectedProject.id && (
-                    <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-800/60">
-                      <span className="text-[10px] uppercase font-['Space_Mono'] text-gray-400">Alterar Status:</span>
-                      <select
-                        value={selectedProject.status}
-                        onChange={async (e) => {
-                          const newStatus = e.target.value;
-                          if (!selectedProject.id) return;
-                          try {
-                            await updateDoc(doc(db, 'projects', selectedProject.id), { status: newStatus });
-                            setSelectedProject({ ...selectedProject, status: newStatus as any });
-                            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, status: newStatus as any } : p));
-                            toast.success(`Status atualizado para "${newStatus}"!`);
-                          } catch (err) {
-                            console.error(err);
-                            toast.error('Erro ao atualizar status');
-                          }
-                        }}
-                        className="bg-[#1b1b1e] border border-gray-700 text-xs text-gray-200 px-2 py-1 font-['Space_Mono'] outline-none cursor-pointer focus:border-emerald-500"
-                      >
-                        <option value="em andamento">Em Andamento</option>
-                        <option value="em produção">Em Produção</option>
-                        <option value="concluído">Concluído</option>
-                        <option value="pausado">Pausado</option>
-                        <option value="aprovado">Aprovado</option>
-                        <option value="em análise">Em Análise</option>
-                        <option value="ideia">Ideia</option>
-                        <option value="cancelado">Cancelado</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenEditProject(selectedProject)}
-                        className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-['Space_Mono'] flex items-center gap-1 cursor-pointer transition-colors"
-                      >
-                        <Edit2 size={12} /> Editar Ficha do Jogo
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button 
-                onClick={() => setSelectedProject(null)}
-                className="text-gray-400 hover:text-white p-1"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* GDD Nível 1 content */}
-            <div className="space-y-6 text-xs text-gray-300">
-              {/* Elevator Pitch */}
-              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20">
-                <span className="text-[10px] font-bold text-emerald-400 uppercase font-['Space_Mono'] block mb-1">
-                  Elevator Pitch (O Jogo em um Parágrafo)
-                </span>
-                <p className="text-sm text-gray-200 leading-relaxed font-medium">
-                  {selectedProject.elevatorPitch || selectedProject.description}
-                </p>
-              </div>
-
-              {/* Diferencial */}
-              {selectedProject.diferencial && (
-                <div className="p-4 bg-gray-900 border border-gray-800">
-                  <span className="text-[10px] font-bold text-amber-400 uppercase font-['Space_Mono'] block mb-1">
-                    O Diferencial
-                  </span>
-                  <p className="leading-relaxed">{selectedProject.diferencial}</p>
-                </div>
-              )}
-
-              {/* Pilares de Design */}
-              {selectedProject.pilares && (
-                <div className="p-4 bg-gray-900 border border-gray-800">
-                  <span className="text-[10px] font-bold text-purple-400 uppercase font-['Space_Mono'] block mb-1">
-                    Pilares de Design
-                  </span>
-                  <p className="leading-relaxed whitespace-pre-line">{selectedProject.pilares}</p>
-                </div>
-              )}
-
-              {/* Escopo e Equipe */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 bg-gray-900 border border-gray-800">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
-                    Tamanho e Prazo Alvo
-                  </span>
-                  <p>{selectedProject.targetScope || 'Demo jogável até o fim do semestre'}</p>
-                </div>
-
-                <div className="p-4 bg-gray-900 border border-gray-800">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
-                    Liderança e Diretoria
-                  </span>
-                  <p>Líder: <strong className="text-white">{selectedProject.leader}</strong> ({selectedProject.leaderDiscord})</p>
-                  <p className="mt-1">Diretor: {selectedProject.responsibleDirector || 'Diretoria de Projetos'}</p>
-                </div>
-              </div>
-
-              {/* Equipe Atual */}
-              {selectedProject.teamMembers && (
-                <div className="p-4 bg-gray-900 border border-gray-800">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
-                    Membros da Equipe
-                  </span>
-                  <p className="text-gray-200">{selectedProject.teamMembers}</p>
-                </div>
-              )}
-
-              {/* Check-in Status */}
-              <div className="p-4 bg-gray-950 border border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                <div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block">
-                    Último Check-in Quinzenal
-                  </span>
-                  <p className="text-xs text-gray-300">
-                    Data: <strong className="text-white">{selectedProject.lastCheckInDate || 'Pendente'}</strong>
-                  </p>
-                  {selectedProject.lastCheckInNotes && (
-                    <p className="text-[11px] text-gray-400 mt-1 italic">
-                      "{selectedProject.lastCheckInNotes}"
-                    </p>
-                  )}
-                </div>
-                {canEditGames && (
-                  <button
-                    onClick={() => {
-                      setCheckInModalProject(selectedProject);
-                      setCheckInNotes(selectedProject.lastCheckInNotes || '');
-                    }}
-                    className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-['Space_Mono'] border border-gray-700 cursor-pointer"
-                  >
-                    Registrar Check-in
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-6 pt-4 border-t border-gray-800 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                {canEditGames && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditProject(selectedProject)}
-                    className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <Edit2 size={13} /> Editar Ficha do Jogo
-                  </button>
-                )}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteProject(selectedProject)}
-                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    <Trash2 size={13} /> Excluir Projeto
-                  </button>
-                )}
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => handleBroadcastProjectEmail(selectedProject)}
-                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
-                    title="Disparar comunicado por e-mail com todos os membros em cópia oculta (BCC)"
-                  >
-                    <Mail size={13} /> Notificar Membros por E-mail
-                  </button>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedProject(null)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-['Space_Mono'] cursor-pointer"
-              >
-                Fechar Ficha
-              </button>
-            </div>
-          </div>
-        </div>
+        <ProjectPage
+          project={selectedProject}
+          isAdmin={canEditGames}
+          isSiteAdmin={isAdmin}
+          userEmail={activeEmail}
+          userName={currentUserName || auth.currentUser?.displayName || ''}
+          openings={openings}
+          muralTasks={tasks}
+          statusBadge={getStatusBadge}
+          onBack={() => setSelectedProject(null)}
+          onProjectUpdated={(updated) => {
+            setSelectedProject(updated);
+            setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
+          }}
+          onEditFicha={() => handleOpenEditProject(selectedProject)}
+          onDelete={() => handleDeleteProject(selectedProject)}
+          onNotify={() => handleBroadcastProjectEmail(selectedProject)}
+          onNewOpening={() => {
+            setNewOpeningForm(prev => ({ ...prev, projectId: selectedProject.id || '' }));
+            setIsNewOpeningModalOpen(true);
+          }}
+          onNewMuralTask={() => {
+            setNewTaskForm(prev => ({ ...prev, projectId: selectedProject.id || '' }));
+            setIsNewTaskModalOpen(true);
+          }}
+          onClaimMuralTask={handleClaimTask}
+        />
       )}
 
       {/* MODAL: ADMIN CHECK-IN */}

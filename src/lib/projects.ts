@@ -20,8 +20,11 @@ export interface ProjectItem {
   engine: string;
   genre: string;
   leader: string;
+  leaderUid?: string;
   leaderDiscord?: string;
   responsibleDirector?: string;
+  responsibleDirectorUid?: string;
+  teamMemberUids?: string[];
   semester?: string;
   description: string;
   elevatorPitch?: string;
@@ -31,10 +34,37 @@ export interface ProjectItem {
   lastCheckInDate?: string;
   lastCheckInNotes?: string;
   repositoryUrl?: string;
+  boardsUrl?: string;
+  driveUrl?: string;
   buildUrl?: string;
   itchUrl?: string;
+  gddUrl?: string;
+  gddDocumentId?: string;
+  scriptUrl?: string;
+  scriptDocumentId?: string;
+  files?: ProjectFileItem[];
+  devlogs?: ProjectDevlogItem[];
   teamMembers?: string;
   coverEmoji?: string;
+  createdAt: number;
+}
+
+export interface ProjectFileItem {
+  id: string;
+  name: string;
+  url: string;
+  type?: string;
+  createdAt: number;
+}
+
+export interface ProjectDevlogItem {
+  id: string;
+  date: string;
+  author: string;
+  title: string;
+  summary: string;
+  nextSteps?: string;
+  blockers?: string;
   createdAt: number;
 }
 
@@ -68,6 +98,9 @@ export interface TaskItem {
   claimedByEmail?: string;
   claimedAt?: number;
   deliveredAt?: number;
+  boardStatus?: 'todo' | 'doing' | 'done';
+  priority?: 'baixa' | 'media' | 'alta' | 'bloqueadora';
+  delivery?: string;
   createdAt: number;
 }
 

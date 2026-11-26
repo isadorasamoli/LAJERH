@@ -39,6 +39,19 @@ export const googleSignIn = async (): Promise<{ user: User; accessToken: string 
     if (error.code === 'auth/popup-closed-by-user') {
       return null;
     }
+    const details = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
+    if (
+      details.includes('não concluiu o processo de verificação') ||
+      details.includes('verification') ||
+      details.includes('access_denied') ||
+      details.includes('acesso bloqueado')
+    ) {
+      const verificationError = new Error(
+        'O projeto OAuth do Google ainda não está aprovado ou sua conta não foi adicionada como usuário de teste.'
+      );
+      (verificationError as any).code = 'auth/oauth-not-verified';
+      throw verificationError;
+    }
     console.error('Sign in error:', error);
     throw error;
   } finally {

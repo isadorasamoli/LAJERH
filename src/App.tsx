@@ -283,6 +283,7 @@ export default function App() {
       const messages: Record<string, string> = {
         'auth/unauthorized-domain': `Este domínio (${window.location.hostname}) ainda não foi autorizado no Firebase. Adicione-o em Authentication > Settings > Authorized domains.`,
         'auth/operation-not-allowed': 'O login com Google ainda não está habilitado no Firebase.',
+        'auth/oauth-not-verified': 'Acesso bloqueado pelo Google: publique o consentimento OAuth ou adicione sua conta em Usuários de teste no Google Cloud Console.',
         'auth/popup-blocked': 'O navegador bloqueou a janela de login. Permita pop-ups para este site e tente novamente.',
         'auth/popup-closed-by-user': 'A janela de login foi fechada antes da conclusão.',
       };
@@ -307,6 +308,10 @@ export default function App() {
             <div>
               <h1 className="font-['Syne'] text-[1.8rem] uppercase font-bold tracking-[-0.04em] mb-2 text-[var(--color-ink)]">Laje RH</h1>
               <p className="font-['Space_Mono'] uppercase tracking-[0.1em] text-[0.7rem] text-[var(--color-ink-muted)]">Acesso Restrito ao Portal</p>
+              <p className="mt-4 text-sm leading-6 text-[var(--color-ink-muted)]">
+                Portal administrativo da Liga Acadêmica de Jogos Eletrônicos da UFPE para cadastro de membros,
+                gestão de projetos, eventos e comunicação interna da LAJE.
+              </p>
             </div>
             
             <button 
@@ -330,6 +335,14 @@ export default function App() {
                 {loginError}
               </p>
             )}
+            <nav className="flex items-center justify-center gap-5 text-xs text-[var(--color-ink-muted)]">
+              <a href="/privacy.html" className="hover:text-[var(--color-ink)] underline underline-offset-4">
+                Política de Privacidade
+              </a>
+              <a href="/terms.html" className="hover:text-[var(--color-ink)] underline underline-offset-4">
+                Termos de Serviço
+              </a>
+            </nav>
           </div>
         </div>
       </div>

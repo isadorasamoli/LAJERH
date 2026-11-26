@@ -31,6 +31,32 @@ service cloud.firestore {
       );
     }
 
+    function isProjectOwner(data) {
+      return isSignedIn() && (
+        (data.keys().hasAny(['leaderUid']) && data.leaderUid == request.auth.uid) ||
+        (data.keys().hasAny(['responsibleDirectorUid']) && data.responsibleDirectorUid == request.auth.uid)
+      );
+    }
+
+    function isProjectTeamMember(data) {
+      return isSignedIn() &&
+        data.keys().hasAny(['teamMemberUids']) &&
+        data.teamMemberUids is list &&
+        request.auth.uid in data.teamMemberUids;
+    }
+
+    function isProjectManager(data) {
+      return isProjectOwner(data) || isProjectTeamMember(data);
+    }
+
+    function canManageProject(projectId) {
+      return isAdmin() || (
+        projectId is string &&
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        isProjectManager(get(/databases/$(database)/documents/projects/$(projectId)).data)
+      );
+    }
+
     function isRHorSuperAdmin() {
       return isAdmin();
     }
@@ -160,7 +186,12 @@ service cloud.firestore {
         && data.status is string && data.status.size() <= 50
         && data.engine is string && data.engine.size() <= 100
         && data.leader is string && data.leader.size() <= 255
-        && data.createdAt is number;
+        && data.createdAt is number
+        && (!data.keys().hasAny(['leaderUid']) || (data.leaderUid is string && data.leaderUid.size() <= 128))
+        && (!data.keys().hasAny(['responsibleDirectorUid']) || (data.responsibleDirectorUid is string && data.responsibleDirectorUid.size() <= 128))
+        && (!data.keys().hasAny(['teamMemberUids']) || (data.teamMemberUids is list && data.teamMemberUids.size() <= 100))
+        && (!data.keys().hasAny(['boardsUrl']) || (data.boardsUrl is string && data.boardsUrl.size() <= 500))
+        && (!data.keys().hasAny(['driveUrl']) || (data.driveUrl is string && data.driveUrl.size() <= 500));
     }
 
     function isValidInformalProject(data) {
@@ -327,65 +358,22 @@ service cloud.firestore {
       allow create: if isRHorSuperAdmin()
         && isValidId(projectId)
         && isValidProject(incoming());
-      allow update: if isValidProject(incoming()) && (
-        isRHorSuperAdmin() ||
-        // O líder edita o próprio projeto, mas não troca o líder.
-        (isProjectLeader(projectId) && incoming().get('leaderEmail', '') == existing().get('leaderEmail', ''))
-      );
+      allow update: if isAdmin() && isValidProject(incoming())
+        || isProjectOwner(existing()) && isValidProject(incoming())
+        || isProjectTeamMember(existing())
+          && !isAdmin()
+          && !isProjectOwner(existing())
+          && existing().leaderUid == incoming().leaderUid
+          && existing().responsibleDirectorUid == incoming().responsibleDirectorUid
+          && existing().teamMemberUids == incoming().teamMemberUids
+          && existing().diff(incoming()).affectedKeys().hasOnly([
+            'gddUrl', 'gddDocumentId', 'scriptUrl', 'scriptDocumentId',
+            'boardsUrl', 'repositoryUrl', 'buildUrl', 'itchUrl', 'driveUrl',
+            'files', 'devlogs',
+            'lastCheckInDate', 'lastCheckInNotes'
+          ])
+          && isValidProject(incoming());
       allow delete: if isRHorSuperAdmin();
-
-      // Página de projeto: tarefas internas e entregas só para o time.
-      match /boardTasks/{taskId} {
-        allow read: if isProjectTeam(projectId);
-        allow create: if isProjectTeam(projectId) && isValidBoardTask(incoming());
-        allow update: if isProjectTeam(projectId) && isValidBoardTask(incoming());
-        allow delete: if isProjectLeader(projectId) || isRHorSuperAdmin();
-      }
-      match /deliveries/{deliveryId} {
-        allow read: if isProjectTeam(projectId);
-        allow create, update: if (isProjectLeader(projectId) || isRHorSuperAdmin())
-          && incoming().name is string && incoming().name.size() <= 120
-          && incoming().due is string && incoming().due.size() == 10;
-        allow delete: if isProjectLeader(projectId) || isRHorSuperAdmin();
-      }
-      // Devlog: qualquer membro lê; o time registra check-in em nome próprio.
-      match /checkins/{checkinId} {
-        allow read: if isSignedIn();
-        allow create: if isProjectTeam(projectId)
-          && incoming().authorEmail == myEmail()
-          && incoming().done is string && incoming().done.size() > 0 && incoming().done.size() <= 4000
-          && incoming().get('blocked', '') is string && incoming().get('blocked', '').size() <= 4000;
-        allow delete: if isRHorSuperAdmin();
-      }
-    }
-
-    function myEmail() {
-      return request.auth.token.email != null ? request.auth.token.email.lower() : '';
-    }
-
-    function projectData(projectId) {
-      return get(/databases/$(database)/documents/projects/$(projectId)).data;
-    }
-
-    function isProjectLeader(projectId) {
-      return isSignedIn() && myEmail() != ''
-        && projectData(projectId).get('leaderEmail', '') == myEmail();
-    }
-
-    function isProjectTeam(projectId) {
-      return isSignedIn() && (
-        isRHorSuperAdmin() ||
-        isProjectLeader(projectId) ||
-        (myEmail() != '' && myEmail() in projectData(projectId).get('teamEmails', []))
-      );
-    }
-
-    function isValidBoardTask(data) {
-      return data.title is string && data.title.size() > 0 && data.title.size() <= 300
-        && data.status in ['A fazer', 'Fazendo', 'Feito']
-        && data.priority in ['Crítica', 'Importante', 'Polish']
-        && data.owners is list && data.owners.size() <= 10
-        && data.ownerEmails is list && data.ownerEmails.size() <= 10;
     }
 
     match /informalProjects/{projectId} {
@@ -403,7 +391,7 @@ service cloud.firestore {
 
     match /openings/{openingId} {
       allow read: if isSignedIn();
-      allow create: if (isAdmin() || isProjectLeader(incoming().projectId))
+      allow create: if canManageProject(incoming().projectId)
         && isValidId(openingId)
         && isValidOpening(incoming());
       allow update: if isAdmin()
@@ -413,7 +401,7 @@ service cloud.firestore {
 
     match /tasks/{taskId} {
       allow read: if isSignedIn();
-      allow create: if (isAdmin() || isProjectLeader(incoming().projectId))
+      allow create: if canManageProject(incoming().projectId)
         && isValidId(taskId)
         && isValidTask(incoming());
       allow update: if isSignedIn()

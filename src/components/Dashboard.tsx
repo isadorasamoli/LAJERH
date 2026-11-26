@@ -1365,6 +1365,7 @@ export default function Dashboard({
       learningFocus: '',
       isInProject: defaultIsInProject,
       currentProjects: defaultCurrentProjects,
+      projectDeadlines: {},
       notInProjectStatus: defaultNotInProjectStatus,
       interestedProjects: '',
       attendancePreference: 'Sim, sem problema',

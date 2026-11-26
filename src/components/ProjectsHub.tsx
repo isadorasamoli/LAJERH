@@ -53,7 +53,7 @@ import {
   Edit2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import ProjectPage from './ProjectPage';
+import ProjectWorkspace from './ProjectWorkspace';
 
 interface ProjectsHubProps {
   isAdmin?: boolean;
@@ -159,8 +159,10 @@ export default function ProjectsHub({
     engine: 'Godot',
     genre: '',
     leader: '',
+    leaderUid: '',
     leaderDiscord: '',
     responsibleDirector: 'Diretoria de Projetos',
+    responsibleDirectorUid: '',
     semester: '2026.2',
     description: '',
     elevatorPitch: '',
@@ -168,6 +170,7 @@ export default function ProjectsHub({
     pilares: '',
     targetScope: 'Protótipo jogável neste semestre',
     teamMembers: '',
+    teamMemberUids: [] as string[],
     coverEmoji: '🎮'
   });
 
@@ -177,8 +180,10 @@ export default function ProjectsHub({
     engine: 'Godot',
     genre: '',
     leader: currentUserName || '',
+    leaderUid: '',
     leaderDiscord: '',
     responsibleDirector: 'Diretoria de Projetos',
+    responsibleDirectorUid: '',
     semester: '2026.2',
     description: '',
     elevatorPitch: '',
@@ -186,6 +191,7 @@ export default function ProjectsHub({
     pilares: '',
     targetScope: 'Protótipo jogável neste semestre',
     teamMembers: '',
+    teamMemberUids: [] as string[],
     coverEmoji: '🎮',
     notifyMembers: true
   });
@@ -204,6 +210,17 @@ export default function ProjectsHub({
   const [editMemberRoleFilter, setEditMemberRoleFilter] = useState('all');
   const [editMemberProjectFilter, setEditMemberProjectFilter] = useState<'all' | 'available' | 'in_project'>('all');
   const [editMemberCourseFilter, setEditMemberCourseFilter] = useState('all');
+
+  const retainTeamMemberUids = (teamNames: string, selectedUids: string[]) => {
+    const displayedNames = teamNames
+      .split(',')
+      .map(name => name.trim().replace(/\s+\([^)]*\)$/, '').toLowerCase())
+      .filter(Boolean);
+    return selectedUids.filter(uid => {
+      const member = registeredMembers.find(item => item.userId === uid);
+      return Boolean(member?.name && displayedNames.includes(String(member.name).trim().toLowerCase()));
+    });
+  };
 
   useEffect(() => {
     const fetchRegisteredMembers = async () => {
@@ -267,9 +284,15 @@ export default function ProjectsHub({
       toast.success(`"${memberName}" adicionado(a) à equipe!`);
     }
 
+    const memberUid = typeof member.userId === 'string' ? member.userId : '';
     setNewProjectForm(prev => ({
       ...prev,
-      teamMembers: updated.join(', ')
+      teamMembers: updated.join(', '),
+      teamMemberUids: memberUid
+        ? isAlreadyIn
+          ? prev.teamMemberUids.filter(uid => uid !== memberUid)
+          : Array.from(new Set([...prev.teamMemberUids, memberUid]))
+        : prev.teamMemberUids
     }));
   };
 
@@ -298,9 +321,15 @@ export default function ProjectsHub({
       toast.success(`"${memberName}" adicionado(a) à equipe!`);
     }
 
+    const memberUid = typeof member.userId === 'string' ? member.userId : '';
     setEditProjectForm(prev => ({
       ...prev,
-      teamMembers: updated.join(', ')
+      teamMembers: updated.join(', '),
+      teamMemberUids: memberUid
+        ? isAlreadyIn
+          ? prev.teamMemberUids.filter(uid => uid !== memberUid)
+          : Array.from(new Set([...prev.teamMemberUids, memberUid]))
+        : prev.teamMemberUids
     }));
   };
 
@@ -406,8 +435,10 @@ export default function ProjectsHub({
         engine: newProjectForm.engine || 'Godot',
         genre: newProjectForm.genre || 'Gênero indefinido',
         leader: newProjectForm.leader.trim(),
+        leaderUid: newProjectForm.leaderUid,
         leaderDiscord: newProjectForm.leaderDiscord.trim(),
         responsibleDirector: newProjectForm.responsibleDirector || 'Diretoria de Projetos',
+        responsibleDirectorUid: newProjectForm.responsibleDirectorUid,
         semester: newProjectForm.semester || '2026.2',
         description: newProjectForm.description || newProjectForm.elevatorPitch || 'Sem descrição cadastrada.',
         elevatorPitch: newProjectForm.elevatorPitch || newProjectForm.description,
@@ -415,6 +446,7 @@ export default function ProjectsHub({
         pilares: newProjectForm.pilares || '',
         targetScope: newProjectForm.targetScope || 'Protótipo jogável neste semestre',
         teamMembers: newProjectForm.teamMembers || newProjectForm.leader,
+        teamMemberUids: newProjectForm.teamMemberUids,
         coverEmoji: newProjectForm.coverEmoji || '🎮',
         createdAt: Date.now()
       };
@@ -428,8 +460,10 @@ export default function ProjectsHub({
         engine: 'Godot',
         genre: '',
         leader: currentUserName || '',
+        leaderUid: '',
         leaderDiscord: '',
         responsibleDirector: 'Diretoria de Projetos',
+        responsibleDirectorUid: '',
         semester: '2026.2',
         description: '',
         elevatorPitch: '',
@@ -437,7 +471,9 @@ export default function ProjectsHub({
         pilares: '',
         targetScope: 'Protótipo jogável neste semestre',
         teamMembers: '',
-        coverEmoji: '🎮'
+        teamMemberUids: [],
+        coverEmoji: '🎮',
+        notifyMembers: true
       });
       await logAuditAction({
         action: 'Criação de Registro',
@@ -503,8 +539,10 @@ export default function ProjectsHub({
       engine: p.engine || 'Godot',
       genre: p.genre || '',
       leader: p.leader || '',
+      leaderUid: p.leaderUid || '',
       leaderDiscord: p.leaderDiscord || '',
       responsibleDirector: p.responsibleDirector || 'Diretoria de Projetos',
+      responsibleDirectorUid: p.responsibleDirectorUid || '',
       semester: p.semester || '2026.2',
       description: p.description || '',
       elevatorPitch: p.elevatorPitch || p.description || '',
@@ -512,6 +550,7 @@ export default function ProjectsHub({
       pilares: p.pilares || '',
       targetScope: p.targetScope || 'Protótipo jogável neste semestre',
       teamMembers: p.teamMembers || '',
+      teamMemberUids: p.teamMemberUids || [],
       coverEmoji: p.coverEmoji || '🎮'
     });
     setIsEditProjectModalOpen(true);
@@ -532,8 +571,10 @@ export default function ProjectsHub({
         engine: editProjectForm.engine || 'Godot',
         genre: editProjectForm.genre.trim() || 'Gênero indefinido',
         leader: editProjectForm.leader.trim(),
+        leaderUid: editProjectForm.leaderUid,
         leaderDiscord: editProjectForm.leaderDiscord.trim(),
         responsibleDirector: editProjectForm.responsibleDirector.trim() || 'Diretoria de Projetos',
+        responsibleDirectorUid: editProjectForm.responsibleDirectorUid,
         semester: editProjectForm.semester.trim() || '2026.2',
         description: editProjectForm.description.trim() || editProjectForm.elevatorPitch.trim() || 'Sem descrição cadastrada.',
         elevatorPitch: editProjectForm.elevatorPitch.trim() || editProjectForm.description.trim(),
@@ -541,6 +582,7 @@ export default function ProjectsHub({
         pilares: editProjectForm.pilares.trim(),
         targetScope: editProjectForm.targetScope.trim() || 'Protótipo jogável neste semestre',
         teamMembers: editProjectForm.teamMembers.trim() || editProjectForm.leader.trim(),
+        teamMemberUids: editProjectForm.teamMemberUids,
         coverEmoji: editProjectForm.coverEmoji || '🎮'
       };
 
@@ -1056,8 +1098,6 @@ export default function ProjectsHub({
 
   return (
     <div id="projects-hub" className="w-full max-w-5xl mx-auto space-y-8 pb-16 animate-in fade-in duration-300 text-left">
-      {!selectedProject && (
-      <>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[var(--color-ink-faint)] pb-6">
         <div>
           <div className="flex items-center gap-3">
@@ -1813,37 +1853,254 @@ export default function ProjectsHub({
         </div>
       )}
 
-      </>
+      {selectedProject && (
+        <ProjectWorkspace
+          project={selectedProject}
+          openings={openings}
+          tasks={tasks}
+          canManage={Boolean(
+            canEditGames ||
+            selectedProject.leaderUid === auth.currentUser?.uid ||
+            selectedProject.responsibleDirectorUid === auth.currentUser?.uid ||
+            selectedProject.teamMemberUids?.includes(auth.currentUser?.uid || '')
+          )}
+          canEditProject={Boolean(
+            canEditGames ||
+            selectedProject.leaderUid === auth.currentUser?.uid ||
+            selectedProject.responsibleDirectorUid === auth.currentUser?.uid
+          )}
+          onClose={() => setSelectedProject(null)}
+          onProjectUpdated={updatedProject => {
+            setSelectedProject(updatedProject);
+            setProjects(prev => prev.map(project => project.id === updatedProject.id ? updatedProject : project));
+          }}
+          onTaskUpdated={updatedTask => {
+            setTasks(prev => prev.map(task => task.id === updatedTask.id ? updatedTask : task));
+          }}
+          onTaskCreated={async task => {
+            try {
+              const docRef = await addDoc(collection(db, 'tasks'), task);
+              setTasks(prev => [{ id: docRef.id, ...task }, ...prev]);
+              toast.success('Tarefa adicionada ao projeto');
+            } catch (error) {
+              console.error(error);
+              toast.error('Erro ao criar tarefa');
+            }
+          }}
+          onOpeningCreated={async opening => {
+            try {
+              const docRef = await addDoc(collection(db, 'openings'), opening);
+              setOpenings(prev => [{ id: docRef.id, ...opening }, ...prev]);
+              toast.success('Vaga adicionada ao projeto');
+            } catch (error) {
+              console.error(error);
+              toast.error('Erro ao criar vaga');
+            }
+          }}
+        />
       )}
 
-      {selectedProject && (
-        <ProjectPage
-          project={selectedProject}
-          isAdmin={canEditGames}
-          isSiteAdmin={isAdmin}
-          userEmail={activeEmail}
-          userName={currentUserName || auth.currentUser?.displayName || ''}
-          openings={openings}
-          muralTasks={tasks}
-          statusBadge={getStatusBadge}
-          onBack={() => setSelectedProject(null)}
-          onProjectUpdated={(updated) => {
-            setSelectedProject(updated);
-            setProjects(prev => prev.map(p => p.id === updated.id ? updated : p));
-          }}
-          onEditFicha={() => handleOpenEditProject(selectedProject)}
-          onDelete={() => handleDeleteProject(selectedProject)}
-          onNotify={() => handleBroadcastProjectEmail(selectedProject)}
-          onNewOpening={() => {
-            setNewOpeningForm(prev => ({ ...prev, projectId: selectedProject.id || '' }));
-            setIsNewOpeningModalOpen(true);
-          }}
-          onNewMuralTask={() => {
-            setNewTaskForm(prev => ({ ...prev, projectId: selectedProject.id || '' }));
-            setIsNewTaskModalOpen(true);
-          }}
-          onClaimMuralTask={handleClaimTask}
-        />
+      {/* MODAL: PROJECT DETAILS (LEGACY - DESATIVADO) */}
+      {false && selectedProject && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
+          onClick={() => setSelectedProject(null)}
+        >
+          <div 
+            className="bg-[#141416] border border-gray-700 w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl p-6 relative"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-gray-800 mb-6">
+              <div className="flex items-center gap-3">
+                <span className="text-3xl">{selectedProject.coverEmoji || '🎮'}</span>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xl font-bold text-white font-['Syne']">{selectedProject.name}</h3>
+                    {getStatusBadge(selectedProject.status)}
+                  </div>
+                  <p className="text-xs text-amber-400 font-['Space_Mono'] mt-0.5">
+                    {selectedProject.genre} • {selectedProject.engine} • Semestre {selectedProject.semester}
+                  </p>
+                  {canEditGames && selectedProject.id && (
+                    <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-800/60">
+                      <span className="text-[10px] uppercase font-['Space_Mono'] text-gray-400">Alterar Status:</span>
+                      <select
+                        value={selectedProject.status}
+                        onChange={async (e) => {
+                          const newStatus = e.target.value;
+                          if (!selectedProject.id) return;
+                          try {
+                            await updateDoc(doc(db, 'projects', selectedProject.id), { status: newStatus });
+                            setSelectedProject({ ...selectedProject, status: newStatus as any });
+                            setProjects(prev => prev.map(p => p.id === selectedProject.id ? { ...p, status: newStatus as any } : p));
+                            toast.success(`Status atualizado para "${newStatus}"!`);
+                          } catch (err) {
+                            console.error(err);
+                            toast.error('Erro ao atualizar status');
+                          }
+                        }}
+                        className="bg-[#1b1b1e] border border-gray-700 text-xs text-gray-200 px-2 py-1 font-['Space_Mono'] outline-none cursor-pointer focus:border-emerald-500"
+                      >
+                        <option value="em andamento">Em Andamento</option>
+                        <option value="em produção">Em Produção</option>
+                        <option value="concluído">Concluído</option>
+                        <option value="pausado">Pausado</option>
+                        <option value="aprovado">Aprovado</option>
+                        <option value="em análise">Em Análise</option>
+                        <option value="ideia">Ideia</option>
+                        <option value="cancelado">Cancelado</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditProject(selectedProject)}
+                        className="px-2.5 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-['Space_Mono'] flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        <Edit2 size={12} /> Editar Ficha do Jogo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button 
+                onClick={() => setSelectedProject(null)}
+                className="text-gray-400 hover:text-white p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* GDD Nível 1 content */}
+            <div className="space-y-6 text-xs text-gray-300">
+              {/* Elevator Pitch */}
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase font-['Space_Mono'] block mb-1">
+                  Elevator Pitch (O Jogo em um Parágrafo)
+                </span>
+                <p className="text-sm text-gray-200 leading-relaxed font-medium">
+                  {selectedProject.elevatorPitch || selectedProject.description}
+                </p>
+              </div>
+
+              {/* Diferencial */}
+              {selectedProject.diferencial && (
+                <div className="p-4 bg-gray-900 border border-gray-800">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase font-['Space_Mono'] block mb-1">
+                    O Diferencial
+                  </span>
+                  <p className="leading-relaxed">{selectedProject.diferencial}</p>
+                </div>
+              )}
+
+              {/* Pilares de Design */}
+              {selectedProject.pilares && (
+                <div className="p-4 bg-gray-900 border border-gray-800">
+                  <span className="text-[10px] font-bold text-purple-400 uppercase font-['Space_Mono'] block mb-1">
+                    Pilares de Design
+                  </span>
+                  <p className="leading-relaxed whitespace-pre-line">{selectedProject.pilares}</p>
+                </div>
+              )}
+
+              {/* Escopo e Equipe */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-900 border border-gray-800">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
+                    Tamanho e Prazo Alvo
+                  </span>
+                  <p>{selectedProject.targetScope || 'Demo jogável até o fim do semestre'}</p>
+                </div>
+
+                <div className="p-4 bg-gray-900 border border-gray-800">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
+                    Liderança e Diretoria
+                  </span>
+                  <p>Líder: <strong className="text-white">{selectedProject.leader}</strong> ({selectedProject.leaderDiscord})</p>
+                  <p className="mt-1">Diretor: {selectedProject.responsibleDirector || 'Diretoria de Projetos'}</p>
+                </div>
+              </div>
+
+              {/* Equipe Atual */}
+              {selectedProject.teamMembers && (
+                <div className="p-4 bg-gray-900 border border-gray-800">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block mb-1">
+                    Membros da Equipe
+                  </span>
+                  <p className="text-gray-200">{selectedProject.teamMembers}</p>
+                </div>
+              )}
+
+              {/* Check-in Status */}
+              <div className="p-4 bg-gray-950 border border-gray-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <span className="text-[10px] font-bold text-gray-400 uppercase font-['Space_Mono'] block">
+                    Último Check-in Quinzenal
+                  </span>
+                  <p className="text-xs text-gray-300">
+                    Data: <strong className="text-white">{selectedProject.lastCheckInDate || 'Pendente'}</strong>
+                  </p>
+                  {selectedProject.lastCheckInNotes && (
+                    <p className="text-[11px] text-gray-400 mt-1 italic">
+                      "{selectedProject.lastCheckInNotes}"
+                    </p>
+                  )}
+                </div>
+                {canEditGames && (
+                  <button
+                    onClick={() => {
+                      setCheckInModalProject(selectedProject);
+                      setCheckInNotes(selectedProject.lastCheckInNotes || '');
+                    }}
+                    className="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-['Space_Mono'] border border-gray-700 cursor-pointer"
+                  >
+                    Registrar Check-in
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="mt-6 pt-4 border-t border-gray-800 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                {canEditGames && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditProject(selectedProject)}
+                    className="px-3 py-1.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Edit2 size={13} /> Editar Ficha do Jogo
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteProject(selectedProject)}
+                    className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Trash2 size={13} /> Excluir Projeto
+                  </button>
+                )}
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => handleBroadcastProjectEmail(selectedProject)}
+                    className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-['Space_Mono'] flex items-center gap-1.5 cursor-pointer transition-colors"
+                    title="Disparar comunicado por e-mail com todos os membros em cópia oculta (BCC)"
+                  >
+                    <Mail size={13} /> Notificar Membros por E-mail
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedProject(null)}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-xs font-['Space_Mono'] cursor-pointer"
+              >
+                Fechar Ficha
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* MODAL: ADMIN CHECK-IN */}
@@ -2075,9 +2332,27 @@ export default function ProjectsHub({
                     required
                     placeholder="Nome completo do líder"
                     value={newProjectForm.leader}
-                    onChange={e => setNewProjectForm({ ...newProjectForm, leader: e.target.value })}
+                    onChange={e => setNewProjectForm({ ...newProjectForm, leader: e.target.value, leaderUid: '' })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={newProjectForm.leaderUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setNewProjectForm(prev => ({
+                        ...prev,
+                        leaderUid: e.target.value,
+                        leader: member?.name || prev.leader
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta do líder para permissões do projeto"
+                  >
+                    <option value="">Associar conta do líder (necessário para permissões)</option>
+                    {registeredMembers.filter(item => typeof item.userId === 'string' && item.userId).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-gray-300 font-semibold mb-1 uppercase">Discord do Líder</label>
@@ -2088,6 +2363,28 @@ export default function ProjectsHub({
                     onChange={e => setNewProjectForm({ ...newProjectForm, leaderDiscord: e.target.value.replace(/^@/, '') })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={newProjectForm.responsibleDirectorUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setNewProjectForm(prev => ({
+                        ...prev,
+                        responsibleDirectorUid: e.target.value,
+                        responsibleDirector: member?.name || 'Diretoria de Projetos'
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta da diretoria responsável"
+                  >
+                    <option value="">Sem pessoa associada à diretoria</option>
+                    {registeredMembers.filter(item =>
+                      typeof item.userId === 'string' &&
+                      item.userId &&
+                      /diretoria|diretório/i.test(String(item.leagueRole || ''))
+                    ).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -2173,9 +2470,17 @@ export default function ProjectsHub({
                   placeholder="Ex: Maria (Líder), Lucas (Dev), Sofia (Arte)... ou clique no botão acima para abrir o filtro"
                   value={newProjectForm.teamMembers}
                   onFocus={() => { if (canEditGames && !isMemberFilterOpen) setIsMemberFilterOpen(true); }}
-                  onChange={e => setNewProjectForm({ ...newProjectForm, teamMembers: e.target.value })}
+                  onChange={e => {
+                    const teamMembers = e.target.value;
+                    setNewProjectForm(prev => ({
+                      ...prev,
+                      teamMembers,
+                      teamMemberUids: retainTeamMemberUids(teamMembers, prev.teamMemberUids)
+                    }));
+                  }}
                   className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                 />
+                <p className="mt-1 text-[10px] text-gray-500">Apenas membros adicionados pelo filtro de cadastro recebem permissões; texto digitado é só para exibição.</p>
 
                 {/* Chips of added members */}
                 {newProjectForm.teamMembers && (
@@ -2197,7 +2502,11 @@ export default function ProjectsHub({
                               .map(s => s.trim())
                               .filter(m => m !== memberName)
                               .join(', ');
-                            setNewProjectForm({ ...newProjectForm, teamMembers: updated });
+                            setNewProjectForm(prev => ({
+                              ...prev,
+                              teamMembers: updated,
+                              teamMemberUids: retainTeamMemberUids(updated, prev.teamMemberUids)
+                            }));
                             toast.success(`"${memberName}" removido(a) da equipe`);
                           }}
                           className="hover:text-red-400 cursor-pointer p-0.5 transition-colors"
@@ -2211,7 +2520,7 @@ export default function ProjectsHub({
                       <button
                         type="button"
                         onClick={() => {
-                          setNewProjectForm({ ...newProjectForm, teamMembers: '' });
+                          setNewProjectForm(prev => ({ ...prev, teamMembers: '', teamMemberUids: [] }));
                           toast.success('Membros da equipe limpos');
                         }}
                         className="text-[10px] text-gray-500 hover:text-red-400 font-['Space_Mono'] underline cursor-pointer ml-1"
@@ -2638,9 +2947,27 @@ export default function ProjectsHub({
                     required
                     placeholder="Nome completo do líder"
                     value={editProjectForm.leader}
-                    onChange={e => setEditProjectForm({ ...editProjectForm, leader: e.target.value })}
+                    onChange={e => setEditProjectForm({ ...editProjectForm, leader: e.target.value, leaderUid: '' })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={editProjectForm.leaderUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setEditProjectForm(prev => ({
+                        ...prev,
+                        leaderUid: e.target.value,
+                        leader: member?.name || prev.leader
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta do líder para permissões do projeto"
+                  >
+                    <option value="">Associar conta do líder (necessário para permissões)</option>
+                    {registeredMembers.filter(item => typeof item.userId === 'string' && item.userId).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-gray-300 font-semibold mb-1 uppercase">Discord do Líder</label>
@@ -2651,6 +2978,28 @@ export default function ProjectsHub({
                     onChange={e => setEditProjectForm({ ...editProjectForm, leaderDiscord: e.target.value.replace(/^@/, '') })}
                     className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                   />
+                  <select
+                    value={editProjectForm.responsibleDirectorUid}
+                    onChange={e => {
+                      const member = registeredMembers.find(item => item.userId === e.target.value);
+                      setEditProjectForm(prev => ({
+                        ...prev,
+                        responsibleDirectorUid: e.target.value,
+                        responsibleDirector: member?.name || 'Diretoria de Projetos'
+                      }));
+                    }}
+                    className="mt-2 w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white"
+                    aria-label="Conta da diretoria responsável"
+                  >
+                    <option value="">Sem pessoa associada à diretoria</option>
+                    {registeredMembers.filter(item =>
+                      typeof item.userId === 'string' &&
+                      item.userId &&
+                      /diretoria|diretório/i.test(String(item.leagueRole || ''))
+                    ).map(member => (
+                      <option key={member.userId} value={member.userId}>{member.name} — {member.email}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -2735,9 +3084,17 @@ export default function ProjectsHub({
                   placeholder="Ex: Maria (Líder), Lucas (Dev), Sofia (Arte)... ou clique no botão acima para abrir o filtro"
                   value={editProjectForm.teamMembers}
                   onFocus={() => { if (canEditGames && !isEditMemberFilterOpen) setIsEditMemberFilterOpen(true); }}
-                  onChange={e => setEditProjectForm({ ...editProjectForm, teamMembers: e.target.value })}
+                  onChange={e => {
+                    const teamMembers = e.target.value;
+                    setEditProjectForm(prev => ({
+                      ...prev,
+                      teamMembers,
+                      teamMemberUids: retainTeamMemberUids(teamMembers, prev.teamMemberUids)
+                    }));
+                  }}
                   className="w-full bg-[#161619] border border-gray-700 p-2.5 text-xs text-white outline-none focus:border-emerald-500"
                 />
+                <p className="mt-1 text-[10px] text-gray-500">Apenas membros adicionados pelo filtro de cadastro recebem permissões; texto digitado é só para exibição.</p>
 
                 {/* Chips of added members */}
                 {editProjectForm.teamMembers && (
@@ -2759,7 +3116,11 @@ export default function ProjectsHub({
                               .map(s => s.trim())
                               .filter(m => m !== memberName)
                               .join(', ');
-                            setEditProjectForm({ ...editProjectForm, teamMembers: updated });
+                            setEditProjectForm(prev => ({
+                              ...prev,
+                              teamMembers: updated,
+                              teamMemberUids: retainTeamMemberUids(updated, prev.teamMemberUids)
+                            }));
                             toast.success(`"${memberName}" removido(a) da equipe`);
                           }}
                           className="hover:text-red-400 cursor-pointer p-0.5 transition-colors"
@@ -2773,7 +3134,7 @@ export default function ProjectsHub({
                       <button
                         type="button"
                         onClick={() => {
-                          setEditProjectForm({ ...editProjectForm, teamMembers: '' });
+                          setEditProjectForm(prev => ({ ...prev, teamMembers: '', teamMemberUids: [] }));
                           toast.success('Membros da equipe limpos');
                         }}
                         className="text-[10px] text-gray-500 hover:text-red-400 font-['Space_Mono'] underline cursor-pointer ml-1"

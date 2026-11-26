@@ -12,6 +12,8 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import { sendEventNotification } from '../lib/workspace';
+import { QrCode } from 'lucide-react';
+import AttendanceQrModal from './AttendanceQrModal';
 
 interface CalendarProps {
   isAdmin: boolean;
@@ -49,6 +51,7 @@ export default function CalendarTab({ isAdmin, isRH = false, token }: CalendarPr
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
+  const [attendanceEventId, setAttendanceEventId] = useState<string | null>(null);
   
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
@@ -516,8 +519,17 @@ export default function CalendarTab({ isAdmin, isRH = false, token }: CalendarPr
                       <Mail size={13} />
                       Disparar E-mail
                     </button>
-                    <button 
-                      onClick={(e) => handleDeleteRequest(e, editingEventId)} 
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceEventId(editingEventId)}
+                      className="px-2 py-1 bg-sky-500/10 hover:bg-sky-500/20 text-sky-300 border border-sky-500/30 text-xs font-['Space_Mono'] flex items-center gap-1 cursor-pointer transition-colors"
+                      title="Mostrar o QR code de presença deste evento"
+                    >
+                      <QrCode size={13} />
+                      Presença
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteRequest(e, editingEventId)}
                       className="text-[var(--color-ink-muted)] hover:text-red-400 transition-colors bg-transparent border-none cursor-pointer"
                       title="Excluir Evento"
                     >
@@ -661,6 +673,9 @@ export default function CalendarTab({ isAdmin, isRH = false, token }: CalendarPr
             </button>
           </div>
         </div>
+      )}
+      {attendanceEventId && (
+        <AttendanceQrModal eventId={attendanceEventId} onClose={() => setAttendanceEventId(null)} />
       )}
     </div>
   );

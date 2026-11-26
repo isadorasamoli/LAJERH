@@ -4,7 +4,7 @@ import { doc, getDoc, setDoc, updateDoc, collection, getDocs, query, orderBy, wh
 import { db } from './lib/firebase';
 import { sendWelcomeEmail } from './lib/workspace';
 import { initAuth, googleSignIn, logout, getAccessToken } from './lib/auth';
-import { Terminal, LayoutDashboard, LogOut, Calendar as CalendarIcon, Moon, Sun, Settings, History, Gamepad2, HelpCircle, FileText } from 'lucide-react';
+import { Terminal, LayoutDashboard, LogOut, Calendar as CalendarIcon, Moon, Sun, Settings, History, Gamepad2, HelpCircle, FileText, Home, UserRound, Trophy, BookOpen, Activity, Lightbulb } from 'lucide-react';
 import Form from './components/Form';
 import Dashboard from './components/Dashboard';
 import CalendarTab from './components/CalendarTab';
@@ -15,10 +15,62 @@ import DirectorioDoubts from './components/DirectorioDoubts';
 import AdminAccessBlocked from './components/AdminAccessBlocked';
 import ExtensionProjectsAdmin from './components/ExtensionProjectsAdmin';
 import InformalProjects from './components/InformalProjects';
+import HomePanel from './components/HomePanel';
+import MemberPortfolio from './components/MemberPortfolio';
+import ProjectHealth from './components/ProjectHealth';
+import GameJams from './components/GameJams';
+import ResourceLibrary from './components/ResourceLibrary';
+import PublicShowcase from './components/PublicShowcase';
+import PlaytestFeedbackForm from './components/PlaytestFeedbackForm';
+import AttendanceCheckin from './components/AttendanceCheckin';
 import { toast } from 'react-hot-toast';
 
-export type TabType = 'form' | 'projects' | 'informal' | 'calendar' | 'doubts' | 'dashboard' | 'extension' | 'logs' | 'settings';
-export const ADMIN_TABS: TabType[] = ['dashboard', 'extension', 'logs', 'settings'];
+export type TabType = 'home' | 'form' | 'projects' | 'informal' | 'calendar' | 'jams' | 'resources' | 'portfolio' | 'doubts'
+  | 'health' | 'dashboard' | 'extension' | 'logs' | 'settings';
+export const ADMIN_TABS: TabType[] = ['health', 'dashboard', 'extension', 'logs', 'settings'];
+const VALID_TABS: TabType[] = ['home', 'form', 'projects', 'informal', 'calendar', 'jams', 'resources', 'portfolio', 'doubts', 'health', 'dashboard', 'extension', 'logs', 'settings'];
+
+type NavItem = { id: TabType; label: string; short?: string; icon: typeof Home };
+const NAV_GROUPS: Array<{ title: string; adminOnly?: boolean; items: NavItem[] }> = [
+  {
+    title: 'Aplicações',
+    items: [
+      { id: 'home', label: 'Meu painel', icon: Home },
+      { id: 'form', label: 'Formulário RH', short: 'Formulário', icon: Terminal },
+      { id: 'projects', label: 'Projetos & Oportunidades', icon: Gamepad2 },
+      { id: 'informal', label: 'Projetos Informais', icon: Lightbulb },
+      { id: 'calendar', label: 'Calendário', icon: CalendarIcon },
+      { id: 'jams', label: 'Game jams', icon: Trophy },
+      { id: 'resources', label: 'Recursos', icon: BookOpen },
+      { id: 'portfolio', label: 'Meu portfólio', icon: UserRound },
+      { id: 'doubts', label: 'Dúvidas ao Diretório', icon: HelpCircle },
+    ],
+  },
+  {
+    title: 'Administração',
+    adminOnly: true,
+    items: [
+      { id: 'health', label: 'Saúde dos projetos', icon: Activity },
+      { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'extension', label: 'Projetos de Extensão', icon: FileText },
+      { id: 'logs', label: 'Log de Alterações', short: 'Logs', icon: History },
+      { id: 'settings', label: 'Administradores', icon: Settings },
+    ],
+  },
+];
+
+/**
+ * Páginas que abrem sem login: #vitrine e #playtest/{id}.
+ * #presenca/{eventoId}/{codigo} pede login e registra a presença depois.
+ */
+const getSpecialRoute = () => {
+  const hash = window.location.hash.replace(/^#\/?/, '');
+  const [name, a, b] = hash.split('/');
+  if (name === 'vitrine') return { kind: 'showcase' as const };
+  if (name === 'playtest' && a) return { kind: 'playtest' as const, id: a };
+  if (name === 'presenca' && a && b) return { kind: 'attendance' as const, eventId: a, code: b };
+  return null;
+};
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -26,7 +78,14 @@ export default function App() {
   const [needsAuth, setNeedsAuth] = useState(true);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<TabType>('form');
+  const [activeTab, setActiveTab] = useState<TabType>('home');
+  const [specialRoute, setSpecialRoute] = useState(getSpecialRoute);
+
+  useEffect(() => {
+    const onHash = () => setSpecialRoute(getSpecialRoute());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userLeagueRole, setUserLeagueRole] = useState<string>('');
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
@@ -34,7 +93,7 @@ export default function App() {
   const getTabFromUrl = (): TabType | null => {
     try {
       const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase().trim();
-      const validTabs: TabType[] = ['form', 'projects', 'informal', 'calendar', 'doubts', 'dashboard', 'extension', 'logs', 'settings'];
+      const validTabs = VALID_TABS;
       if (validTabs.includes(hash as TabType)) {
         return hash as TabType;
       }
@@ -51,7 +110,7 @@ export default function App() {
 
   const sanitizeAndSetUrl = (tab: TabType) => {
     try {
-      const cleanUrl = `${window.location.pathname}${tab !== 'form' ? `#${tab}` : ''}`;
+      const cleanUrl = `${window.location.pathname}${tab !== 'home' ? `#${tab}` : ''}`;
       window.history.replaceState(null, '', cleanUrl);
     } catch {
       // ignore
@@ -62,8 +121,8 @@ export default function App() {
     if (ADMIN_TABS.includes(targetTab)) {
       if (!isAdmin) {
         toast.error('Acesso restrito: Privilégios de administrador necessários.');
-        setActiveTab('form');
-        sanitizeAndSetUrl('form');
+        setActiveTab('home');
+        sanitizeAndSetUrl('home');
         return;
       }
     }
@@ -186,16 +245,16 @@ export default function App() {
         if (ADMIN_TABS.includes(urlTab)) {
           if (!isAdmin) {
             toast.error('Acesso restrito: Privilégios de administrador necessários.');
-            setActiveTab('form');
-            sanitizeAndSetUrl('form');
+            setActiveTab('home');
+            sanitizeAndSetUrl('home');
             return;
           }
         }
         setActiveTab(urlTab);
       } else {
         if (ADMIN_TABS.includes(activeTab) && !isAdmin) {
-          setActiveTab('form');
-          sanitizeAndSetUrl('form');
+          setActiveTab('home');
+          sanitizeAndSetUrl('home');
         }
       }
     };
@@ -218,8 +277,8 @@ export default function App() {
   // Se o estado de isAdmin for falso ou for revogado, forçar saída de abas administrativas imediatamente
   useEffect(() => {
     if (!isAdmin && ADMIN_TABS.includes(activeTab)) {
-      setActiveTab('form');
-      sanitizeAndSetUrl('form');
+      setActiveTab('home');
+      sanitizeAndSetUrl('home');
     }
   }, [isAdmin, activeTab]);
 
@@ -292,6 +351,10 @@ export default function App() {
       setIsLoggingIn(false);
     }
   };
+
+  // Páginas públicas: abrem com ou sem login.
+  if (specialRoute?.kind === 'showcase') return <PublicShowcase />;
+  if (specialRoute?.kind === 'playtest') return <PlaytestFeedbackForm playtestId={specialRoute.id} />;
 
   if (needsAuth) {
     return (
@@ -376,215 +439,61 @@ export default function App() {
         </div>
       </header>
 
-      <aside className="hidden md:flex border-r border-[var(--color-ink-faint)] py-8 px-4 flex-col gap-2">
-        <div className="font-['Space_Mono'] uppercase tracking-[0.1em] text-[0.7rem] mb-3 px-4 opacity-50">Aplicações</div>
-        <button
-          onClick={() => handleTabChange('form')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-            activeTab === 'form' 
-              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-          }`}
-        >
-          <Terminal size={18} />
-          Formulário RH
-        </button>
-        <button
-          onClick={() => handleTabChange('projects')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-            activeTab === 'projects' 
-              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-          }`}
-        >
-          <Gamepad2 size={18} />
-          Projetos & Oportunidades
-        </button>
-        <button
-          onClick={() => handleTabChange('informal')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-            activeTab === 'informal'
-              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
-              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-          }`}
-        >
-          <Gamepad2 size={18} />
-          Projetos Informais
-        </button>
-        <button
-          onClick={() => handleTabChange('calendar')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-            activeTab === 'calendar' 
-              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-          }`}
-        >
-          <CalendarIcon size={18} />
-          Calendário
-        </button>
-        <button
-          onClick={() => handleTabChange('doubts')}
-          className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-            activeTab === 'doubts' 
-              ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-          }`}
-        >
-          <HelpCircle size={18} />
-          Dúvidas ao Diretório
-        </button>
-        
-        {isAdmin && (
-          <>
-            <div className="font-['Space_Mono'] uppercase tracking-[0.1em] text-[0.7rem] mb-3 mt-6 px-4 opacity-50">Administração</div>
-            <button
-              onClick={() => handleTabChange('dashboard')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-                activeTab === 'dashboard' 
-                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-              }`}
-            >
-              <LayoutDashboard size={18} />
-              Dashboard
-            </button>
-            <button
-              onClick={() => handleTabChange('extension')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-                activeTab === 'extension'
-                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
-                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-              }`}
-            >
-              <FileText size={18} />
-              Projetos de Extensão
-            </button>
-            <button
-              onClick={() => handleTabChange('logs')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-                activeTab === 'logs' 
-                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-              }`}
-            >
-              <History size={18} />
-              Log de Alterações
-            </button>
-            <button
-              onClick={() => handleTabChange('settings')}
-              className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
-                activeTab === 'settings' 
-                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
-              }`}
-            >
-              <Settings size={18} />
-              Administradores
-            </button>
-          </>
-        )}
+      <aside className="hidden md:flex border-r border-[var(--color-ink-faint)] py-8 px-4 flex-col gap-1 overflow-y-auto">
+        {NAV_GROUPS.filter(group => !group.adminOnly || isAdmin).map(group => (
+          <div key={group.title} className="flex flex-col gap-1 mb-4">
+            <div className="font-['Space_Mono'] uppercase tracking-[0.1em] text-[0.7rem] mb-2 px-4 opacity-50">{group.title}</div>
+            {group.items.map(item => (
+              <button
+                key={item.id}
+                onClick={() => handleTabChange(item.id)}
+                className={`flex items-center gap-3 px-4 py-2.5 rounded-md font-medium text-[0.9rem] transition-all w-full text-left border-none cursor-pointer ${
+                  activeTab === item.id
+                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[rgba(255,255,255,0.03)]'
+                }`}
+              >
+                <item.icon size={18} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        ))}
       </aside>
 
       <main className="app-main p-8 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.05),transparent_40%)]">
         {/* Navegação compacta para telas menores */}
         <nav className="flex md:hidden flex-wrap gap-2 mb-8 pb-2">
-          <button
-            onClick={() => handleTabChange('form')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-              activeTab === 'form' 
-                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-            }`}
-          >
-            Formulário
-          </button>
-          <button
-            onClick={() => handleTabChange('projects')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-              activeTab === 'projects' 
-                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-            }`}
-          >
-            Projetos & Oportunidades
-          </button>
-          <button
-            onClick={() => handleTabChange('informal')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-              activeTab === 'informal'
-                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
-                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-            }`}
-          >
-            Projetos Informais
-          </button>
-          <button
-            onClick={() => handleTabChange('calendar')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-              activeTab === 'calendar' 
-                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-            }`}
-          >
-            Calendário
-          </button>
-          <button
-            onClick={() => handleTabChange('doubts')}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-              activeTab === 'doubts' 
-                ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-            }`}
-          >
-            Dúvidas ao Diretório
-          </button>
-          {isAdmin && (
-            <>
-              <button
-                onClick={() => handleTabChange('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                  activeTab === 'dashboard' 
-                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-                }`}
-              >
-                Dashboard
-              </button>
-              <button
-                onClick={() => handleTabChange('extension')}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                  activeTab === 'extension'
-                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
-                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-                }`}
-              >
-                Projetos de Extensão
-              </button>
-              <button
-                onClick={() => handleTabChange('logs')}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                  activeTab === 'logs' 
-                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-                }`}
-              >
-                Logs
-              </button>
-              <button
-                onClick={() => handleTabChange('settings')}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
-                  activeTab === 'settings' 
-                    ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]' 
-                    : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
-                }`}
-              >
-                Administradores
-              </button>
-            </>
-          )}
+          {NAV_GROUPS.filter(group => !group.adminOnly || isAdmin).flatMap(group => group.items).map(item => (
+            <button
+              key={item.id}
+              onClick={() => handleTabChange(item.id)}
+              className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+                activeTab === item.id
+                  ? 'bg-[var(--color-ink-faint)] text-[var(--color-ink)]'
+                  : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] bg-[rgba(255,255,255,0.03)]'
+              }`}
+            >
+              {item.short || item.label}
+            </button>
+          ))}
         </nav>
 
         <div className="w-full">
+          {specialRoute?.kind === 'attendance' && user && (
+            <AttendanceCheckin
+              user={user}
+              eventId={specialRoute.eventId}
+              code={specialRoute.code}
+              onDone={() => { window.history.replaceState(null, '', window.location.pathname); setSpecialRoute(null); handleTabChange('portfolio'); }}
+            />
+          )}
+          {specialRoute?.kind !== 'attendance' && <>
+          {activeTab === 'home' && user && <HomePanel user={user} isAdmin={isAdmin} onNavigate={tab => handleTabChange(tab)} />}
+          {activeTab === 'portfolio' && user && <MemberPortfolio user={user} />}
+          {activeTab === 'jams' && user && <GameJams user={user} isAdmin={isAdmin} />}
+          {activeTab === 'resources' && user && <ResourceLibrary user={user} isAdmin={isAdmin} />}
+          {activeTab === 'health' && isAdmin && <ProjectHealth />}
           {activeTab === 'form' && <Form user={user} token={token || ''} />}
           {activeTab === 'projects' && (() => {
             const currentEmail = user?.email?.toLowerCase().trim() || '';
@@ -675,12 +584,13 @@ export default function App() {
                 onNavigateHome={() => handleTabChange('form')} 
               />
             ) : (
-              <AdminAccessBlocked 
-                title="Acesso Restrito: Administradores" 
-                onNavigateHome={() => handleTabChange('form')} 
+              <AdminAccessBlocked
+                title="Acesso Restrito: Administradores"
+                onNavigateHome={() => handleTabChange('form')}
               />
             )
           )}
+          </>}
         </div>
       </main>
     </div>

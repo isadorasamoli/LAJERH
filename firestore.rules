@@ -353,6 +353,122 @@ service cloud.firestore {
       );
     }
 
+    function myEmailLower() {
+      return request.auth.token.email != null ? request.auth.token.email.lower() : '';
+    }
+
+    function canEditProjectId(projectId) {
+      return isAdmin() || (
+        exists(/databases/$(database)/documents/projects/$(projectId)) &&
+        isProjectOwner(get(/databases/$(database)/documents/projects/$(projectId)).data)
+      );
+    }
+
+    // Presença em eventos: o QR code leva o código; a presença só é aceita com o código certo.
+    match /eventAttendanceCodes/{eventId} {
+      allow read, write: if isAdmin();
+    }
+    match /attendance/{attendanceId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isSignedIn()
+        && attendanceId == incoming().eventId + '_' + request.auth.uid
+        && incoming().keys().hasOnly(['eventId', 'uid', 'email', 'name', 'eventTitle', 'eventDate', 'code', 'createdAt'])
+        && incoming().uid == request.auth.uid
+        && incoming().code is string
+        && exists(/databases/$(database)/documents/eventAttendanceCodes/$(incoming().eventId))
+        && get(/databases/$(database)/documents/eventAttendanceCodes/$(incoming().eventId)).data.code == incoming().code
+        && incoming().name is string && incoming().name.size() <= 255
+        && incoming().eventTitle is string && incoming().eventTitle.size() <= 255
+        && incoming().eventDate is string && incoming().eventDate.size() <= 50
+        && incoming().createdAt is number;
+      allow delete: if isAdmin();
+    }
+
+    // Vitrine pública (#vitrine): só os campos públicos de cada jogo.
+    match /showcase/{projectId} {
+      allow read: if true;
+      allow create, update: if canEditProjectId(projectId)
+        && incoming().keys().hasOnly(['name', 'genre', 'engine', 'status', 'semester', 'pitch', 'cover', 'itchUrl', 'buildUrl', 'team', 'updatedAt'])
+        && incoming().name is string && incoming().name.size() <= 255
+        && incoming().pitch is string && incoming().pitch.size() <= 1500
+        && incoming().cover is string && incoming().cover.size() <= 750000
+        && incoming().team is list && incoming().team.size() <= 40
+        && incoming().updatedAt is number;
+      allow delete: if canEditProjectId(projectId);
+    }
+
+    // Playtests: o formulário abre sem login; as respostas só o time lê.
+    match /playtests/{playtestId} {
+      allow read: if true;
+      allow create: if canManageProject(incoming().projectId)
+        && incoming().title is string && incoming().title.size() <= 200
+        && incoming().questions is list && incoming().questions.size() <= 10
+        && incoming().open is bool;
+      allow update: if canManageProject(existing().projectId)
+        && incoming().projectId == existing().projectId
+        && existing().diff(incoming()).affectedKeys().hasOnly(['open']);
+      allow delete: if canManageProject(existing().projectId);
+    }
+    match /playtestFeedback/{feedbackId} {
+      allow read: if canManageProject(resource.data.projectId);
+      allow create: if incoming().keys().hasOnly(['playtestId', 'projectId', 'testerName', 'rating', 'answers', 'createdAt'])
+        && exists(/databases/$(database)/documents/playtests/$(incoming().playtestId))
+        && get(/databases/$(database)/documents/playtests/$(incoming().playtestId)).data.open == true
+        && get(/databases/$(database)/documents/playtests/$(incoming().playtestId)).data.projectId == incoming().projectId
+        && incoming().rating is int && incoming().rating >= 1 && incoming().rating <= 5
+        && incoming().answers is list && incoming().answers.size() <= 10
+        && incoming().testerName is string && incoming().testerName.size() <= 120
+        && incoming().createdAt is number;
+    }
+
+    // Game jams: a diretoria cria a jam; membros montam times; um voto por pessoa na votação.
+    match /jams/{jamId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+    match /jamTeams/{teamId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && incoming().ownerUid == request.auth.uid
+        && incoming().name is string && incoming().name.size() > 0 && incoming().name.size() <= 80
+        && incoming().members is list && incoming().members.size() <= 10
+        && incoming().memberEmails is list && incoming().memberEmails.size() <= 10;
+      allow update: if isSignedIn()
+        && incoming().ownerUid == existing().ownerUid
+        && incoming().jamId == existing().jamId
+        && incoming().memberEmails.size() <= 10
+        && (
+          isAdmin() || existing().ownerUid == request.auth.uid ||
+          (existing().diff(incoming()).affectedKeys().hasOnly(['members', 'memberEmails']) && (
+            incoming().memberEmails == existing().memberEmails.concat([myEmailLower()]) ||
+            incoming().memberEmails == existing().memberEmails.removeAll([myEmailLower()])
+          ))
+        );
+      allow delete: if isAdmin() || existing().ownerUid == request.auth.uid;
+    }
+    match /jamVotes/{voteId} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && voteId == incoming().jamId + '_' + request.auth.uid
+        && incoming().uid == request.auth.uid
+        && incoming().teamId is string
+        && get(/databases/$(database)/documents/jams/$(incoming().jamId)).data.phase == 'votacao';
+      allow delete: if isAdmin();
+    }
+
+    // Banco de recursos: qualquer membro compartilha; quem compartilhou ou a diretoria remove.
+    match /resources/{resourceId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn()
+        && incoming().addedByUid == request.auth.uid
+        && incoming().keys().hasOnly(['title', 'url', 'area', 'kind', 'description', 'addedBy', 'addedByUid', 'createdAt'])
+        && incoming().title is string && incoming().title.size() > 0 && incoming().title.size() <= 160
+        && incoming().url is string && incoming().url.size() <= 500 && incoming().url.matches('https?://.+')
+        && incoming().description is string && incoming().description.size() <= 600
+        && incoming().createdAt is number;
+      allow delete: if isAdmin() || existing().addedByUid == request.auth.uid;
+    }
+
     // Capa do projeto: imagem reduzida no navegador, guardada como data URL.
     // Todo membro vê; só admin, líder ou diretoria responsável trocam.
     match /projectCovers/{projectId} {

@@ -10,6 +10,8 @@ import { toast } from 'react-hot-toast';
 import { db, functions } from '../lib/firebase';
 import { parseGdd, ParsedGdd } from '../lib/gddParser';
 import { loadProjectCover, removeProjectCover, resizeCoverImage, saveProjectCover } from '../lib/projectCover';
+import { isInShowcase, publishToShowcase, removeFromShowcase } from '../lib/showcase';
+import PlaytestsPanel from './PlaytestsPanel';
 import {
   OpeningItem,
   ProjectDevlogItem,
@@ -227,6 +229,30 @@ export default function ProjectWorkspace({
     }
   };
 
+  const [inShowcase, setInShowcase] = useState(false);
+  useEffect(() => {
+    let active = true;
+    if (project.id) isInShowcase(project.id).then(v => { if (active) setInShowcase(v); }).catch(() => undefined);
+    return () => { active = false; };
+  }, [project.id]);
+
+  const toggleShowcase = async (action: 'publish' | 'update' | 'remove') => {
+    if (!project.id) return;
+    try {
+      if (action === 'remove') {
+        await removeFromShowcase(project.id);
+        setInShowcase(false);
+        toast.success('O jogo saiu da vitrine pública.');
+      } else {
+        await publishToShowcase(project, cover);
+        setInShowcase(true);
+        toast.success(action === 'publish' ? 'Jogo publicado na vitrine (#vitrine).' : 'Vitrine atualizada.');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível atualizar a vitrine.');
+    }
+  };
+
   const deleteCover = async () => {
     if (!project.id) return;
     try {
@@ -248,6 +274,37 @@ export default function ProjectWorkspace({
     () => parseTeam(project.teamMembers, project.leader),
     [project.teamMembers, project.leader]
   );
+  /** Créditos: equipe com funções + quem entregou tarefas (do quadro ou do mural) e não está na equipe. */
+  const creditsText = useMemo(() => {
+    const lines: string[] = [project.name.toUpperCase(), 'Um jogo da LAJE (Liga Acadêmica de Jogos Eletrônicos, CIn UFPE)', ''];
+    if (teamMembers.length) {
+      lines.push('EQUIPE');
+      teamMembers.forEach(m => {
+        const isLeader = m.name.toLowerCase() === (project.leader || '').trim().toLowerCase();
+        const roles = [...(isLeader ? ['Liderança'] : []), ...m.roles];
+        lines.push(roles.length ? `${m.name} - ${roles.join(', ')}` : m.name);
+      });
+      lines.push('');
+    }
+    const teamKeys = new Set(teamMembers.map(m => m.name.toLowerCase()));
+    const contributors = new Map<string, Set<string>>();
+    projectTasks
+      .filter(t => t.claimedBy && (t.status === 'entregue' || t.boardStatus === 'done'))
+      .forEach(t => {
+        const who = (t.claimedBy || '').trim();
+        if (!who || teamKeys.has(who.toLowerCase())) return;
+        if (!contributors.has(who)) contributors.set(who, new Set());
+        contributors.get(who)!.add(t.area && t.area !== 'geral' ? t.area : t.title);
+      });
+    if (contributors.size) {
+      lines.push('COLABORAÇÕES');
+      [...contributors.entries()].sort((a, b) => a[0].localeCompare(b[0])).forEach(([who, what]) => lines.push(`${who} - ${[...what].join(', ')}`));
+      lines.push('');
+    }
+    lines.push('Agradecimentos: a todos os membros da LAJE.');
+    return lines.join('\n');
+  }, [project.name, project.leader, teamMembers, projectTasks]);
+
   const parsedGdd: ParsedGdd | null = useMemo(
     () => gddMarkdown ? parseGdd(gddMarkdown) : null,
     [gddMarkdown]
@@ -594,12 +651,22 @@ export default function ProjectWorkspace({
               <p className="lp-role">{canEditProject ? 'Você pode editar este projeto' : canManage ? 'Você está no time deste projeto' : 'Você vê como membro da liga'}</p>
             </div>
           </div>
-          {canEditProject ? (
-            <select className="lp-btn" aria-label="Status do projeto" value={project.status} onChange={event => void updateStatus(event.target.value)}>
-              {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
-              {!statusOptions.includes(project.status) && <option value={project.status}>{project.status}</option>}
-            </select>
-          ) : <span className="lp-chip green"><i className="lp-dot" />{project.status}</span>}
+          <div className="lp-row">
+            {canEditProject && (
+              inShowcase ? <>
+                <button className="lp-btn small soft" onClick={() => void toggleShowcase('update')} title="Atualiza o texto e a imagem na vitrine pública"><RefreshCw />Atualizar na vitrine</button>
+                <button className="lp-btn small" onClick={() => void toggleShowcase('remove')}>Tirar da vitrine</button>
+              </> : (
+                <button className="lp-btn small" onClick={() => void toggleShowcase('publish')} title="Mostra o jogo na página pública #vitrine, aberta sem login"><Sparkles />Mostrar na vitrine</button>
+              )
+            )}
+            {canEditProject ? (
+              <select className="lp-btn" aria-label="Status do projeto" value={project.status} onChange={event => void updateStatus(event.target.value)}>
+                {statusOptions.map(status => <option key={status} value={status}>{status}</option>)}
+                {!statusOptions.includes(project.status) && <option value={project.status}>{project.status}</option>}
+              </select>
+            ) : <span className="lp-chip green"><i className="lp-dot" />{project.status}</span>}
+          </div>
         </header>
 
         <dl className="lp-facts">
@@ -738,6 +805,17 @@ export default function ProjectWorkspace({
                   {member.roles.length ? member.roles.map(role => <span key={role} className="lp-chip">{role}</span>) : <span className="lp-chip">Equipe do projeto</span>}
                 </div></div></article>
               ))}</div> : <div className="lp-empty"><span>Nenhum membro cadastrado na equipe deste projeto.</span></div>}
+
+              <div className="lp-h lp-links-heading">
+                <div><h3>Créditos do jogo</h3><p>Montados sozinhos a partir da equipe e das tarefas entregues, inclusive as do mural. Copie e cole nos créditos do jogo.</p></div>
+                <button className="lp-btn small" onClick={() => {
+                  navigator.clipboard.writeText(creditsText).then(
+                    () => toast.success('Créditos copiados.'),
+                    () => toast.error('Não consegui copiar. Selecione o texto e copie à mão.')
+                  );
+                }}><FileText />Copiar créditos</button>
+              </div>
+              <pre className="lp-credits">{creditsText}</pre>
             </section>
           )}
 
@@ -877,6 +955,7 @@ export default function ProjectWorkspace({
                   {canManage && <span className="lp-entry-delete"><ConfirmDelete label="Excluir registro" onConfirm={() => void removeDevlog(item.id)} /></span>}
                 </article>
               ))}</div> : <div className="lp-empty"><span>Nenhum registro ainda.</span></div>}
+              {canManage && <PlaytestsPanel project={project} userName={currentUserName || project.leader || ''} />}
             </>
           )}
 

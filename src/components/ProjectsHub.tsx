@@ -50,8 +50,10 @@ import {
   Trash2,
   FolderPlus,
   Mail,
-  Edit2
+  Edit2,
+  Image as ImageIcon
 } from 'lucide-react';
+import { loadProjectCover } from '../lib/projectCover';
 import { toast } from 'react-hot-toast';
 import ProjectWorkspace from './ProjectWorkspace';
 
@@ -138,6 +140,15 @@ export default function ProjectsHub({
   const [loading, setLoading] = useState(true);
 
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  // Capas dos projetos (projectCovers/{id}), para as miniaturas dos cards.
+  const [projectCovers, setProjectCovers] = useState<Record<string, string>>({});
+  useEffect(() => {
+    const missing = projects.filter(p => p.id && !(p.id in projectCovers)).map(p => p.id as string);
+    if (!missing.length) return;
+    Promise.all(missing.map(id => loadProjectCover(id).then(image => [id, image] as const).catch(() => [id, ''] as const)))
+      .then(pairs => setProjectCovers(prev => ({ ...prev, ...Object.fromEntries(pairs) })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects]);
   const [openings, setOpenings] = useState<OpeningItem[]>([]);
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [proposals, setProposals] = useState<ProposalItem[]>([]);
@@ -1262,10 +1273,16 @@ export default function ProjectsHub({
                   <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
 
                   <div>
+                    <div className="-mx-5 -mt-5 mb-4 h-28 overflow-hidden border-b border-[var(--color-ink-faint)] bg-[rgba(255,255,255,0.02)]">
+                      {proj.id && projectCovers[proj.id] ? (
+                        <img src={projectCovers[proj.id]} alt="" className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-300" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.10),transparent_70%)]">
+                          <ImageIcon size={26} />
+                        </div>
+                      )}
+                    </div>
                     <div className="flex items-start justify-between gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-lg bg-gray-800/80 border border-gray-700 flex items-center justify-center text-2xl shadow-inner shrink-0 group-hover:scale-105 transition-transform">
-                        {proj.coverEmoji || '🎮'}
-                      </div>
                       <div className="text-right flex flex-col items-end shrink-0">
                         {getStatusBadge(proj.status)}
                         <span className="block text-[10px] text-gray-500 font-['Space_Mono'] mt-1">

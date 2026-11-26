@@ -568,7 +568,7 @@ export default function ProjectWorkspace({
               <ConfirmDelete label="Remover imagem do projeto" onConfirm={() => void deleteCover()} />
             </span>}
           </div>
-        ) : canEditProject && (
+        ) : canEditProject ? (
           <label className={`lp-cover empty${savingCover ? ' is-busy' : ''}`}>
             <Image />
             <span>
@@ -577,11 +577,18 @@ export default function ProjectWorkspace({
             </span>
             <input type="file" accept="image/*" hidden disabled={savingCover} onChange={event => { void changeCover(event.target.files?.[0]); event.target.value = ''; }} />
           </label>
+        ) : (
+          <div className="lp-cover empty is-static" role="img" aria-label="Este projeto ainda não tem imagem">
+            <Image />
+            <span>
+              <b>Imagem do projeto</b>
+              <small>O time ainda não colocou uma imagem para este projeto.</small>
+            </span>
+          </div>
         )}
 
         <header className="lp-head">
           <div className="lp-head-main">
-            <span className="lp-emoji" aria-hidden="true">{project.coverEmoji || '🎮'}</span>
             <div>
               <h1 className="lp-title">{project.name}</h1>
               <p className="lp-role">{canEditProject ? 'Você pode editar este projeto' : canManage ? 'Você está no time deste projeto' : 'Você vê como membro da liga'}</p>

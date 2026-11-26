@@ -295,10 +295,9 @@
 .lp-person, .lp-callout, .lp-seg, .lp-seg button, .lp-col, .lp-tcard, .lp-ms, .lp-card, .lp-form,
 .lp-list, .lp-modal, .lp-link-input, .lp-bar, .lp-bar > i, .lp-tab .n { border-radius: 0; }
 
-/* cabeçalho com o emoji do jogo */
+/* cabeçalho */
 .lp-crumb { margin-bottom: 20px; }
 .lp-head-main { display: flex; align-items: center; gap: 16px; min-width: 0; }
-.lp-emoji { width: 56px; height: 56px; flex: none; display: grid; place-items: center; font-size: 30px; line-height: 1; border-radius: 8px; background: rgba(31,41,55,.8); border: 1px solid #374151; }
 .lp-title { font-size: 30px; line-height: 36px; overflow-wrap: anywhere; }
 .lp-role { margin-top: 4px; font-size: 12px; line-height: 16px; color: var(--lp-faint); }
 .lp-facts { margin-top: 20px; }
@@ -338,7 +337,6 @@
 @media (max-width: 640px) {
   .lp-page { padding: 0 0 48px; }
   .lp-title { font-size: 24px; line-height: 32px; }
-  .lp-emoji { width: 48px; height: 48px; font-size: 26px; }
 }
 
 /* capa do projeto */
@@ -351,3 +349,5 @@
 .lp-cover label, .lp-cover-actions label { cursor: pointer; }
 .lp .is-busy { opacity: .6; pointer-events: none; }
 @media (max-width: 640px) { .lp-cover { height: 160px; } }
+.lp-cover.empty.is-static { cursor: default; }
+.lp-cover.empty.is-static:hover { border-color: #374151; }

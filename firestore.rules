@@ -364,6 +364,18 @@ service cloud.firestore {
       );
     }
 
+    // Aniversários para todos os membros: só nome, "DD/MM" e função. A diretoria atualiza a partir dos cadastros.
+    match /birthdays/{memberId} {
+      allow read: if isSignedIn();
+      allow create, update: if isAdmin()
+        && incoming().keys().hasOnly(['name', 'birthday', 'leagueRole', 'updatedAt'])
+        && incoming().name is string && incoming().name.size() <= 120
+        && incoming().birthday is string && incoming().birthday.matches('^[0-9]{2}/[0-9]{2}$')
+        && incoming().leagueRole is string && incoming().leagueRole.size() <= 200
+        && incoming().updatedAt is number;
+      allow delete: if isAdmin();
+    }
+
     // Presença em eventos: o QR code leva o código; a presença só é aceita com o código certo.
     match /eventAttendanceCodes/{eventId} {
       allow read, write: if isAdmin();

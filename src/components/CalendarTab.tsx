@@ -14,6 +14,7 @@ import { toast } from 'react-hot-toast';
 import { sendEventNotification } from '../lib/workspace';
 import { QrCode } from 'lucide-react';
 import AttendanceQrModal from './AttendanceQrModal';
+import { loadPublicBirthdays, syncPublicBirthdays } from '../lib/birthdays';
 
 interface CalendarProps {
   isAdmin: boolean;
@@ -75,23 +76,38 @@ export default function CalendarTab({ isAdmin, isRH = false, token }: CalendarPr
       const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setEvents(docs);
 
-      const responseSnap = await getDocs(collection(db, 'responses'));
-      const bdays: MemberBirthday[] = [];
-      responseSnap.docs.forEach(docSnap => {
-        const d = docSnap.data();
-        if (d.status !== 'Ex-membro' && d.birthday && typeof d.birthday === 'string' && d.birthday.trim()) {
-          bdays.push({
-            id: `bday-${docSnap.id}`,
-            memberId: docSnap.id,
-            name: d.name || 'Membro',
-            email: d.email || '',
-            birthday: d.birthday.trim(),
-            leagueRole: d.leagueRole || '',
-            status: d.status || 'Ativo',
+      // Aniversários: a diretoria lê dos cadastros (com idade e e-mail) e atualiza a lista
+      // pública; os demais membros leem a lista pública (nome, dia/mês e função).
+      try {
+        if (canManage) {
+          const responseSnap = await getDocs(collection(db, 'responses'));
+          const bdays: MemberBirthday[] = [];
+          responseSnap.docs.forEach(docSnap => {
+            const d = docSnap.data();
+            if (d.status !== 'Ex-membro' && d.birthday && typeof d.birthday === 'string' && d.birthday.trim()) {
+              bdays.push({
+                id: `bday-${docSnap.id}`,
+                memberId: docSnap.id,
+                name: d.name || 'Membro',
+                email: d.email || '',
+                birthday: d.birthday.trim(),
+                leagueRole: d.leagueRole || '',
+                status: d.status || 'Ativo',
+              });
+            }
           });
+          setMemberBirthdays(bdays);
+          syncPublicBirthdays(bdays).catch(err => console.info('Lista pública de aniversários não foi atualizada:', err));
+        } else {
+          const list = await loadPublicBirthdays();
+          setMemberBirthdays(list.map(b => ({
+            id: `bday-${b.id}`, memberId: b.id, name: b.name, email: '', birthday: b.birthday, leagueRole: b.leagueRole, status: 'Ativo',
+          })));
         }
-      });
-      setMemberBirthdays(bdays);
+      } catch (bdayError) {
+        console.info('Aniversários não carregaram:', bdayError);
+        setMemberBirthdays([]);
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, 'events');
     } finally {
@@ -239,7 +255,11 @@ export default function CalendarTab({ isAdmin, isRH = false, token }: CalendarPr
       }
     } else if (birthdayStr.includes('/')) {
       const parts = birthdayStr.split('/');
-      if (parts.length === 3) {
+      if (parts.length === 2) {
+        // "DD/MM", da lista pública de aniversários (sem ano, então sem idade)
+        birthDay = parseInt(parts[0], 10);
+        birthMonth = parseInt(parts[1], 10);
+      } else if (parts.length === 3) {
         if (parts[2].length === 4) {
           birthDay = parseInt(parts[0], 10);
           birthMonth = parseInt(parts[1], 10);
